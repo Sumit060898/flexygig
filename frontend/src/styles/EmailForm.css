@@ -1,0 +1,48 @@
+.email-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 150px 0 0 0;
+}
+
+.email-form-container .image {
+    width: 98px;
+    margin-bottom: 20px;
+}
+
+.email-form-container #heading {
+    margin: 0 0 45px 0;
+    font-family: 'Poppins';
+    font-size: 30px;
+    font-weight: 500;
+}
+
+.email-form-container form {
+    width: 442px;
+
+    label {
+        display: block;
+        margin: 0 0 5px 0;
+        font-family: 'Nunito';
+        font-size: 14px;
+        font-weight: 500;
+        color: #344054;
+    }
+
+    input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid;
+        font-size: 16px;
+        font-family: 'Nunito';
+        margin: 0 0 20px 0;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border-color: #D0D5DD;
+    }
+}
+
+.email-form-container .error-msg {
+    top: -10px;
+}

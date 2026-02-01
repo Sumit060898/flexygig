@@ -1,0 +1,133 @@
+#workerboard-header {
+    display: flex;
+    flex-direction: row;
+}
+
+#workerboard-header > h1 {
+    color: #0340BE;
+    font-size: 24pt;
+    font-weight: normal; 
+}
+
+#workerboard-skill-search {
+    display: flex;
+    flex-direction: row;
+}
+
+#workerboard-skill-item {
+    border-color: #4EBBC2;
+    border-width: 1px;
+    border-radius: 8px;
+    border-style: solid;
+    width: 100px;
+    height: 30px;
+    align-content: center;
+    text-align: center;
+    margin: 0 10px 0 10px;
+
+    font-size: 14px;
+    color: #273240;
+}
+
+#workerboard-skill-item:hover {
+    background-color: #4EBBC2;
+}
+
+#workerboard-items {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-auto-rows: fit-content();
+    gap: 5px;
+    height: 100%;
+    width: 100%;
+}
+
+#workerboard-worker {
+    height: 200px;
+    width: 700px;
+    padding: 1px 20px 20px 20px;
+    margin-top: 20px;
+    border-radius: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 4px 0 #00000025, 0 8px 20px 0 #0000002a;
+}
+
+#workerboard-worker-header {
+    display: flex;
+    flex-direction: row;
+    padding-bottom: 20px;
+}
+
+#workerboard-worker-name {
+    color: #000000;
+    font-size: 18pt;
+    font-weight: 500; 
+}
+
+#workerboard-worker-details {
+    color: #273240;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
+    gap: 5px;
+    padding: 0 30px;
+}
+
+#workerboard-worker-item {
+    display: flex;
+    grid-row: auto / span 1;
+    grid-column: auto / span 1;
+    justify-items: center;
+    font-size: 16px;
+    padding: 10px 10px 10px 0px;
+
+}
+
+#workerboard-worker-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: row;
+
+    background-color: #fff;
+}
+
+#workerboard-actions-button {
+    height: 30px;
+    width: 120px;
+    background-color: #4EBBC2;
+    border-radius: 8px;
+
+    margin: auto 0 5px 8px;
+}
+
+#workerboard-arrow {
+    margin: 50px 20px 0 auto;
+    height: 20px;
+    width: 20px;
+}
+
+#workerboard-arrow-back {
+    height: 60px;
+    width: 60px;
+    margin: 18px 30px 0 0;
+}
+
+#workerboard-icons {
+    height: 26px;
+    width: 26px;
+    margin-right: 6px;
+}
+
+#workerboard-filter-icon {
+    height: 28px;
+    width: 28px;
+    margin: 0 30px 0 20px;
+    align-self: center;
+}
+
+#workerboard-bookmark {
+    height: 30px;
+    width: 30px;
+    margin: auto 8px 5px auto;
+}

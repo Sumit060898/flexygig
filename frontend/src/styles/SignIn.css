@@ -1,0 +1,115 @@
+.sign-in-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 97px 0;
+}
+
+#sign-in-logo {
+  width: 98px;
+}
+
+#back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#back-button img {
+  height: 45px;
+  width: 45px;
+}
+
+#header-1 {
+  font-size: 30px;
+  font-weight: 500;
+}
+
+#header-2 {
+  font-size: 20px;
+  color: #667085;
+  margin-bottom: 60px;
+}
+
+#mock {
+  width: 380px;
+  margin-bottom: 12px;
+}
+
+.form-group {
+  width: 380px;
+  margin-top: 60px;
+}
+
+.form-group label {
+  display: block;
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #344054;
+}
+
+.form-group input {
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 16px;
+  font-family: 'Nunito', sans-serif;
+  margin: 0 0 20px 0;
+  padding: 10px 14px;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+}
+
+.form-group button {
+  margin: 0;
+  width: 100%;
+  justify-self: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  padding: 10px;
+  background-color: #0340BE;
+  text-align: center;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.form-group button:hover {
+  background-color: #022B7F;
+}
+
+#reset-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #022B7F;
+  text-decoration: none;
+}
+
+#reset-link:hover {
+  text-decoration: underline;
+}
+
+#register-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #022B7F;
+  text-decoration: underline;
+  margin-top: 30px;
+}
+
+#register-link:hover {
+  text-decoration: underline;
+}
+
+#error-message {
+  color: #BE0340;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
+}

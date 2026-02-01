@@ -1,0 +1,49 @@
+.account-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 55px 0 0 0;
+}
+
+.account-form-container .image {
+    width: 98px;
+    margin-bottom: 20px;
+}
+
+.account-form-container #heading {
+    margin: 0 0 45px 0;
+    font-family: 'Poppins';
+    font-size: 30px;
+    font-weight: 500;
+}
+
+.account-form-container form {
+    width: 442px;
+}
+
+.account-form-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-family: 'Nunito';
+    font-size: 14px;
+    font-weight: 500;
+    color: #344054;
+}
+
+.account-form-container input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #D0D5DD;
+    font-size: 16px;
+    font-family: 'Nunito';
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    border-radius: 8px;
+}
+
+.account-form-container .error-msg {
+    color: #BE0340;
+    font-size: 14px;
+    margin-bottom: 30px;
+}

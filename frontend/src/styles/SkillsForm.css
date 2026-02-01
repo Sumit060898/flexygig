@@ -1,0 +1,116 @@
+.skills-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    font-family: 'Poppins';
+    max-width: 500px;
+    margin: auto;
+    text-align: center;
+}
+
+.skills-form-container .image {
+    width: 98px;
+    margin-bottom: 20px;
+}
+
+.skills-form-title {
+    margin: 0 0 20px 0;
+    font-size: 30px;
+    font-family: 'Poppins';
+    font-weight: 500;
+}
+
+.skills-form-label {
+    font-family: 'Nunito';
+    font-size: 14px;
+    margin-bottom: 5px;
+    display: block;
+    text-align: left;
+    margin-left: 30px;
+    width: 100%;
+}
+
+.skills-form-search {
+    width: 90%;
+    padding: 12px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Nunito';
+}
+
+.skills-form-subtitle {
+    font-family: 'Nunito';
+    font-size: 18px;
+    margin: 15px 0 5px;
+    font-weight: normal;
+}
+
+.skills-form-skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 0;
+}
+
+.skills-form-container .skills-form-skill-button {
+    background: white !important;
+    color: black;
+    border: 1px solid #d3e2ea;
+    padding: 10px 15px !important;
+    border-radius: 20px !important;
+    cursor: pointer;
+    font-size: 14px;
+    width: auto;
+    text-align: center;
+    font-weight: 500;
+    font-family: 'Nunito';
+}
+
+.skills-form-container .skills-form-skill-button:hover {
+    background: #e3f2fd !important;
+}
+
+.skills-form-container .skills-form-skill-button.selected {
+    background: #cce5ff !important;
+    border-color: #a3c4fd;
+    color: black;
+}
+
+.skills-form-selected-skills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 5px 0;
+    padding-bottom: 0px;
+}
+
+.skills-form-selected-skill {
+    background: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-family: 'Nunito';
+
+}
+
+.skills-form-selected-skill button {
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+}

@@ -1,0 +1,263 @@
+.calendar {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Poppins', sans-serif;
+}
+
+.calendar-main {
+    text-align: center;
+    flex: 1;
+    max-width: 300px;
+    margin-bottom: 20px;
+}
+
+.calendar-main p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #273240;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.react-datepicker {
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.react-datepicker__header {
+    background-color: #4EBBC2;
+    color: white;
+    border-bottom: 1px solid #d0d5dd;
+    border-radius: 8px 8px 0 0;
+    padding: 10px;
+    font-weight: 600;
+}
+
+.react-datepicker__navigation {
+    width: 30px !important;
+    height: 40px !important;
+    background-color: transparent !important;
+    border: none;
+}
+
+.react-datepicker__day--selected {
+    background-color: #4EBBC2;
+    color: white;
+    border-radius: 50%;
+    font-weight: 500;
+}
+
+.react-datepicker__day:hover {
+    background-color: #3EABB2;
+    color: white;
+    border-radius: 50%;
+}
+
+.calendar-title,
+.calendar-starttime,
+.calendar-endtime {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.calendar-title label,
+.calendar-starttime label,
+.calendar-endtime label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #273240;
+    margin-right: 10px;
+}
+
+.calendar-title input,
+.calendar-starttime select,
+.calendar-endtime select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+    background-color: #ffffff;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.calendar-title input:focus,
+.calendar-starttime select:focus,
+.calendar-endtime select:focus {
+    border-color: #0340BE;
+    outline: none;
+    box-shadow: 0 0 4px black;
+}
+
+.calendar-main button,
+.calendar-delete button {
+    width: 200px;
+    background-color: #4EBBC2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    text-align: center;
+}
+
+.calendar-main button:hover,
+.calendar-delete button:hover {
+    background-color: #3EABB2;
+}
+
+.calendar-delete {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#calendar-message {
+    color: #4EBBC2;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+    padding: 10px;
+    border: 1px solid #4EBBC2;
+    border-radius: 8px;
+    background-color: #f0f9fa;
+}
+
+.calendar-container {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    overflow: hidden;
+}
+
+.rbc-calendar {
+    flex-grow: 1;
+    height: calc(100vh - 140px);
+    font-size: 16px;
+    font-family: 'Poppins', sans-serif;
+    color: #273240;
+    overflow: auto;
+}
+
+.rbc-toolbar {
+    background-color: #4EBBC2;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.rbc-event {
+    background-color: #4EBBC2;
+    color: white;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.rbc-event:hover {
+    background-color: #3EABB2;
+}
+
+.rbc-today {
+    background-color: #f8f9fa;
+}
+
+.rbc-btn-group button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.rbc-btn-group button:hover {
+    background-color: #3EABB2;
+    color: black;
+}
+
+.rbc-btn-group button:focus {
+    outline: none;
+    box-shadow: 0 0 4px black;
+}
+
+.rbc-btn-group button:disabled {
+    background-color: #d0d5dd;
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.rbc-active {
+    color: black !important;
+}
+
+.rbc-month-view {
+    height: 100%;
+    overflow: visible;
+}
+
+.calendar-event-details {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+}
+
+.calendar-event-details h3 {
+    margin-top: 0px;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.calendar-event-details p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.calendar-event-details button {
+    margin-top: 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.calendar-event-details button:hover {
+    background-color: #c0392b;
+}

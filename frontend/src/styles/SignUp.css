@@ -1,0 +1,125 @@
+.sign-up-container {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.sign-up-container .other-links {
+    margin: 60px 0 0 0;
+    font-family: 'Nunito';
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+
+    a {
+        color: #022B7F;
+        text-decoration: underline;
+    }
+
+    .terms {
+        margin: 40px 0 120px 0;
+        width: 240px;
+        line-height: 20px;
+    }
+}
+
+.sign-up-container button {
+    margin: 0;
+    background-color: #0340BE;
+    font-family: 'Nunito';
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 0;
+}
+
+.sign-up-container button:hover {
+    background-color: #022B7F;
+}
+
+.sign-up-container #finish {
+    width: 290px;
+}
+
+.sign-up-container #prev {
+    align-self: flex-start;
+    background: none;
+    margin: 50px 0 0 25px;
+    padding: 0;
+    width: 45px;
+    height: 45px;
+
+    img {
+        height: 45px;
+        width: 45px;
+    }
+}
+
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    img {
+        height: 45px;
+        width: 45px;
+    }
+}
+
+.sign-up-container #next-start {
+    width: 442px;
+    font-size: 16px;
+}
+
+.sign-up-conatiner #next-start:hover {
+    background-color: #022B7F;
+}
+
+.sign-up-container #next {
+    width: 442px;
+    font-size: 14px;
+}
+
+.sign-up-container #next:hover {
+    background-color: #022B7F;
+}
+
+.sign-up-container .error-msg {
+    position: relative;
+    top: 10px;
+    margin: 0;
+    color: #BE0340;
+    text-align: center;
+    line-height: 1.2;
+    font-size: 14px;
+}
+
+.sign-up-container progress {
+    margin: 60px 0 100px 0;
+    width: 237px;
+    height: 8px;
+    border-radius: 4px;
+    border: 0px;
+    background-color: #F2F4F7;
+}
+
+.sign-up-container progress::-webkit-progress-bar {
+    border-radius: 4px;
+    background-color: #F2F4F7;
+}
+
+.sign-up-container progress::-webkit-progress-value {
+    border-radius: 4px;
+    background-color: #022B7F;
+}
+
+.sign-up-container progress::-moz-progress-bar {
+    border-radius: 4px;
+    background-color: #022B7F;
+}

@@ -1,0 +1,143 @@
+.job-posting-form-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 19px;
+  box-shadow: 0 4px 4px rgb(0, 0, 0, .25);
+  font-family: "Poppins";
+  overflow: hidden;
+  width: 1114px;
+}
+
+.job-posting-form-container form {
+  width: 100%;
+  ;
+}
+
+.job-posting-form-container input,
+textarea,
+select {
+  box-sizing: border-box;
+  font-size: 16px;
+  font-family: 'Nunito';
+  border-radius: 8px;
+  border: 1px solid #D0D5DD
+}
+
+.job-posting-form-container .top {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border-bottom: 0.5px solid #C8CBD9;
+
+  label {
+    color: black;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+  }
+
+  .top-left {
+    box-sizing: content-box;
+    padding: 40px 30px;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 5px;
+  }
+
+  .top-right {
+    padding: 40px 50px;
+    display: flex;
+    /* flex-direction: column; */
+    justify-content: right;
+    align-content: flex-start;
+  }
+}
+
+.job-posting-form-container h1 {
+  color: black;
+  margin: 0;
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+.job-posting-form-container button {
+  padding: 0;
+  margin: 0;
+  width: 103px;
+  height: 30px;
+  font-family: "Poppins";
+  font-size: 12px;
+  font-weight: 400;
+  color: white;
+  background-color: #4EBBC2;
+  border-radius: 5px;
+  border: none;
+}
+
+.job-posting-form-container .bottom {
+  display: flex;
+
+  .bottom-left {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-width: 50%;
+    padding: 30px;
+    border-right: 0.5px solid #C8CBD9;
+
+    .details {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 5px;
+      height: 100px;
+      justify-content: space-between;
+      margin-bottom: 25px;
+    }
+
+    .location {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 5px 20px;
+
+      .province {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .postal {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      select {
+        width: fit-content;
+      }
+    }
+  }
+
+  .bottom-right {
+    display: flex;
+    flex-direction: column;
+    max-height: 500px;
+    box-sizing: border-box;
+    min-width: 50%;
+    padding: 40px 40px 30px 50px;
+
+    label {
+      color: black;
+      margin: 0;
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+    }
+  }
+}

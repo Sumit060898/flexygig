@@ -1,0 +1,90 @@
+.newgig {
+  display: grid;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.newgig h1 {
+  color: #0340BE;
+  font-size: 24pt;
+  font-weight: normal;
+  margin: 25px 0 40px 10px;
+}
+
+.newgig-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 20px;
+  margin: 0 auto 25px auto;
+  box-sizing: border-box;
+  border-radius: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 6px 4px 0 #00000025, 0 8px 20px 0 #0000002a;
+}
+
+.newgig-details p {
+  font-size: 14pt;
+}
+
+#newgig-jobtitle {
+  grid-column: 1 / span 3;
+  display: flex;
+  flex-direction: row;
+  color: #000;
+  font-size: 18pt;
+  font-weight: 500;
+  margin: 0;
+}
+
+#newgig-hourlyrate,
+#newgig-businessrating,
+#newgig-date,
+#newgig-businessname {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+#newgig-icons {
+  margin-right: 10px;
+  height: 25px;
+  width: 25px;
+}
+
+#newgig-arrow {
+  height: 25px;
+  width: 25px;
+  justify-self: end;
+  margin: 10px 5px auto auto;
+}
+
+.newgig-morebtn {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  grid-row: 2 / span 3;
+  grid-column: 3;
+}
+
+.newgig-morebtn>button {
+  background-color: #4EBBC2;
+  width: 125px;
+  height: 40px;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.newgig-morebtn>button:hover {
+  background-color: #3EABB2;
+}
+
+.newgig-morebtn>button:focus {
+  outline: 2px solid #0340BE;
+  outline-offset: 2px;
+}

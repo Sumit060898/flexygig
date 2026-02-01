@@ -1,0 +1,115 @@
+.experience-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    font-family: 'Poppins';
+    max-width: 500px;
+    margin: auto;
+    text-align: center;
+
+    .image {
+        width: 98px;
+        margin-bottom: 20px;
+    }
+}
+
+.experience-form-title {
+    margin: 0 0 20px 0;
+    font-size: 30px;
+    font-family: 'Poppins';
+    font-weight: 500;
+}
+
+.experience-form-label {
+    font-family: 'Nunito';
+    font-size: 14px;
+    margin-bottom: 5px;
+    display: block;
+    text-align: left;
+    margin-left: 30px;
+    width: 100%;
+}
+
+.experience-form-search {
+    width: 90%;
+    padding: 12px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Nunito';
+}
+
+.experience-form-subtitle {
+    font-family: 'Nunito';
+    font-size: 18px;
+    margin: 15px 0 5px;
+    font-weight: normal;
+}
+
+.experience-form-jobs-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 0;
+}
+
+.experience-form-container .experience-form-job-button {
+    background: white !important;
+    color: black;
+    border: 1px solid #d3e2ea;
+    padding: 10px 15px !important;
+    border-radius: 20px !important;
+    cursor: pointer;
+    font-size: 14px;
+    width: auto;
+    text-align: center;
+    font-weight: 500;
+    font-family: 'Nunito';
+}
+
+.experience-form-container .experience-form-job-button:hover {
+    background: #e3f2fd !important;
+}
+
+.experience-form-container .experience-form-job-button.selected {
+    background: #cce5ff !important;
+    border-color: #a3c4fd;
+    color: black;
+}
+
+.experience-form-selected-jobs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 5px 0;
+    padding-bottom: 0px;
+}
+
+.experience-form-selected-job {
+    background: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-family: 'Nunito';
+}
+
+.experience-form-selected-job button {
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+}

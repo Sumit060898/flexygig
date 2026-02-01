@@ -1,0 +1,29 @@
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.main-content {
+  display: flex;
+  margin-top: 80px;
+  height: 100%;
+}
+
+.toolbar {
+  width: 240px;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  //background-color: #f0f0f0;
+  z-index: 9;
+  padding-top: 15px;
+}
+
+.content-area {
+  flex-grow: 1;
+  margin-left: 250px;
+  padding: 50px;
+  overflow-y: auto;
+}

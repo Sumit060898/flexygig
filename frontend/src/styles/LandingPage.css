@@ -1,0 +1,82 @@
+.home {
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 7% 0px;
+    margin: auto;
+}
+
+#findgig-button {
+    margin: auto;
+    margin-top: 10px;
+    margin-bottom: 1%;
+    text-align: center;
+    width: 10%;
+
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+
+    border-radius: 8px; 
+    border-style: solid;
+    border-width: 1px;
+    border-color: #0340BE;
+
+    background-color: #0340BE; 
+    padding: 15px 20px; 
+}
+
+#postgig-button {
+    margin: auto;
+    margin-bottom: 1%;
+    text-align: center;
+    width: 10%;
+
+    font-weight: 500;
+    color: #000b21;
+    text-decoration: none;
+
+    border-radius: 8px; 
+    border-style: solid;
+    border-width: 1px;
+    border-color: #c1f6ef;
+
+    background-color: #c1f6ef; 
+    padding: 15px 20px; 
+}
+
+#signin-button {
+    margin: auto;
+    text-align: center;
+    width: 10%;
+
+    font-weight: 500;
+    color: #0340BE;
+    text-decoration: none;
+
+    border-radius: 8px; 
+    border-style: solid;
+    border-width: 1px;
+    border-color: #0340BE;
+
+    background-color: #ffffff; 
+    padding: 12px 20px; 
+}
+
+#homebuttons-container {
+    width: 100%;
+    display:flex;   
+    flex-direction:column;
+}
+
+#welcome-flexygig-image {
+    margin: auto;
+    width: 50%;
+    margin-bottom: 5%;
+}
+
+#flexygig-logo-image {
+    margin: auto;
+    margin-top: 3%;
+    width: 7%;
+}

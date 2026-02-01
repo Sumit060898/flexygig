@@ -1,0 +1,138 @@
+.workers-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.workers-list {
+  list-style-type: none;
+  padding: 0;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.workers-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content:space-between;
+  background-color: #fff;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 2px solid #007bff;
+  border-radius: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.workers-item:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.workers-info h1 {
+  text-align: center;
+  font-size: 24px;
+  margin: 10px 0;
+}
+
+.workers-info h2 {
+  text-align: center;
+  font-size: 20px;
+  margin: 10px 0;
+}
+
+.workers-info h3 {
+  font-weight: bold;
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+.react-calendar__tile.highlight-day {
+  background-color: #00FF00;
+  color: white;
+}
+
+.no-highlight-day {
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.highlight-day {
+  background-color: #00FF00;
+  color: white;
+}
+
+.highlight-date {
+  font-weight: bold;
+}
+
+
+.react-calendar {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+
+.react-calendar__tile {
+  background-color: #d3d3d3a8;
+  color: black;
+  border-radius: 0;
+}
+
+
+.react-calendar__tile.highlight-day {
+  background-color: #00FF00;
+  color: black;
+}
+
+
+.react-calendar {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+.react-calendar__navigation button {
+  color: black;
+}
+
+
+
+.react-calendar__tile:hover,
+.react-calendar__tile--now:hover,
+.react-calendar__tile--active:hover {
+  background-color: inherit;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  color: black;
+}
+
+
+.react-calendar__tile--now {
+  color: black
+}
+
+.workers-item {
+  position: relative;
+}
+
+.contact-button {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background-color: rgb(66, 90, 230);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.contact-button:hover {
+  background-color: blue;
+}

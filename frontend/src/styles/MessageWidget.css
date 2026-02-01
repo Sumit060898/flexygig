@@ -1,0 +1,139 @@
+.message h1 {
+  margin-bottom: 0px;
+  color: #0340BE;
+  font-size: 24pt;
+  font-weight: normal;
+}
+
+.message-container {
+  margin: 0px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  width: 450px;
+  height: 450px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 4px 0 #00000025, 0 8px 20px 0 #0000002a;
+}
+
+.message-list {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  p {
+    margin: 0px;
+  }
+}
+
+.message-entry {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 16px;
+  padding-top: 16px;
+  border-bottom-style: solid;
+  border-color: #DFE1EB;
+  border-width: 1px;
+}
+
+#message-pfp {
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  margin-right: 15px;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.message-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.message-name {
+  font-size: 12pt;
+  font-weight: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  margin: 0;
+}
+
+.message-text {
+  font-size: 10pt;
+  font-weight: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.message-time {
+  font-size: 10pt;
+  color: #273240bf;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 15px;
+}
+
+#message-header {
+  display: grid;
+  grid-template-columns: 2;
+  grid-template-rows: 2;
+}
+
+#message-title {
+  grid-column: 1;
+  margin: 0px;
+}
+
+#arrow-more {
+  height: 25px;
+  width: 25px;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+}
+
+#message-count {
+  font-size: 14pt;
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  margin: 0px;
+}
+
+#message-descriptor {
+  font-size: 14pt;
+  /* font-style: italic; */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.no-messages {
+  width: 80%;
+  max-width: 300px;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-weight: 500;
+  font-size: 12pt;
+  padding: 15px;
+  margin: auto;
+}

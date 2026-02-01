@@ -1,0 +1,126 @@
+.job-details-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 19px;
+    box-shadow: 0 4px 4px rgb(0, 0, 0, .25);
+    font-family: "Poppins";
+    overflow: hidden;
+    width: 1114px;
+}
+
+.job-details-container .top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    border-bottom: 0.5px solid #C8CBD9;
+
+    .top-left {
+        padding: 40px 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: left;
+    }
+
+    .top-right {
+        padding: 40px 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+}
+
+.job-details-container h1 {
+    color: black;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+}
+
+.job-details-container .top-left button {
+    padding: 0;
+    margin: 0;
+    margin-top: 30px;
+    width: 103px;
+    height: 30px;
+    font-family: "Poppins";
+    font-size: 12px;
+    font-weight: 400;
+    color: white;
+    background-color: #4EBBC2;
+    border-radius: 5px;
+    border: none;
+}
+
+.job-details-container .top-right button {
+    margin: 0;
+    gap: 10px;
+    background-color: transparent;
+    color: black;
+    display: flex;
+    align-items: center;
+    width: 104px;
+    padding: 0;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+.job-details-container .bottom {
+    display: flex;
+    min-width: 100%;
+
+    .bottom-left {
+        box-sizing: border-box;
+        min-width: 50%;
+        padding: 30px;
+        border-right: 0.5px solid #C8CBD9;
+
+        .details-div {
+            display: flex;
+            flex-direction: column;
+            height: 100px;
+            justify-content: space-between;
+            margin-bottom: 50px;
+
+            img {
+                margin-right: 15px;
+            }
+
+            div {
+                display: flex;
+                align-items: center;
+                font-size: 16px;
+                letter-spacing: 0.5px;
+            }
+
+            #calendar-icon {
+                filter: brightness(0) saturate(100%) invert(74%) sepia(32%) saturate(495%) hue-rotate(150deg) brightness(92%) contrast(91%);
+            }
+        }
+
+        .location-div {
+            display: flex;
+            flex-direction: column;
+
+            h1 {
+                margin-bottom: 20px;
+            }
+
+            p {
+                margin: 0;
+            }
+        }
+    }
+
+    .bottom-right {
+        max-height: 500px;
+        box-sizing: border-box;
+        min-width: 50%;
+        padding: 40px 40px 0 50px;
+        overflow-y: scroll;
+        /* scrollbar-width: none; */
+    }
+}

@@ -1,0 +1,221 @@
+.jobs-applied-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    border: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    font-family: "Poppins";
+}
+
+.header-container h1 {
+    margin: 0 0 20px;
+    color: #0340BE;
+    font-size: 24px;
+    font-weight: 400;
+}
+
+.jobs-list {
+    padding: 0;
+}
+
+.add-job-button {
+    padding: 0;
+    margin: 0;
+    width: 120px;
+    height: 35px;
+    font-family: "Poppins";
+    font-size: 12px;
+    font-weight: 400;
+    color: black;
+    background-color: white;
+    border-radius: 5px;
+    border: 1px solid #4EBBC2;
+}
+
+.add-job-button:hover {
+    background-color: #4EBBC2;
+    color: white;
+}
+
+.job-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 19px;
+    box-shadow: 0 4px 4px rgb(0, 0, 0, .25);
+    font-family: "Poppins";
+    overflow: hidden;
+    width: 1114px;
+}
+
+.job-item .top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    border-bottom: 0.5px solid #C8CBD9;
+
+    .top-left {
+        padding: 40px 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: left;
+    }
+
+    .top-right {
+        padding: 40px 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+}
+
+.job-item h1 {
+    color: black;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+}
+
+.job-item .top-left button {
+    padding: 0;
+    margin: 0;
+    margin-top: 30px;
+    width: 103px;
+    height: 30px;
+    font-family: "Poppins";
+    font-size: 12px;
+    font-weight: 400;
+    color: white;
+    background-color: #C2554E;
+    border-radius: 5px;
+    border: none;
+}
+
+.job-item .top-right button {
+    margin: 0;
+    gap: 10px;
+    background-color: transparent;
+    color: black;
+    display: flex;
+    align-items: center;
+    width: 104px;
+    padding: 0;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+.job-item .bottom {
+    display: flex;
+    min-width: 100%;
+
+    .bottom-left {
+        box-sizing: border-box;
+        min-width: 50%;
+        padding: 30px;
+        border-right: 0.5px solid #C8CBD9;
+
+        .details-div {
+            display: flex;
+            flex-direction: column;
+            height: 100px;
+            justify-content: space-between;
+            margin-bottom: 50px;
+
+            img {
+                margin-right: 15px;
+            }
+
+            div {
+                display: flex;
+                align-items: center;
+                font-size: 16px;
+                letter-spacing: 0.5px;
+            }
+
+            #calendar-icon {
+                filter: brightness(0) saturate(100%) invert(74%) sepia(32%) saturate(495%) hue-rotate(150deg) brightness(92%) contrast(91%);
+            }
+        }
+
+        .location-div {
+            display: flex;
+            flex-direction: column;
+
+            h1 {
+                margin-bottom: 20px;
+            }
+
+            p {
+                margin: 0;
+            }
+        }
+    }
+
+    .bottom-right {
+        max-height: 500px;
+        box-sizing: border-box;
+        min-width: 50%;
+        padding: 40px 40px 0 50px;
+        overflow-y: scroll;
+        /* scrollbar-width: none; */
+    }
+}
+
+.jobs-applied-container .comfirm-removal-container {
+    background-color: #00000033;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    .prompt {
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 19px;
+        padding: 10px;
+    }
+
+    .prompt-text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0 20px 0;
+    }
+
+    .prompt-buttons {
+        display: flex;
+
+        button {
+            margin: 0 10px 0;
+            background-color: #4EBBC2;
+            color: white;
+            width: 103px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .remove-btn {
+            background-color: #C2554E;
+        }
+    }
+}
