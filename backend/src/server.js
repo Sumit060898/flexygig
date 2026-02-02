@@ -8,14 +8,37 @@ require('dotenv').config(); // Load environment variables from .env file
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080', 'https://flexygig.co', 'https://www.flexygig.co'];
+/**
+ * CORS
+ * - Allow localhost dev
+ * - Allow your custom domains
+ * - Allow Vercel deployments (*.vercel.app)
+ */
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://flexygig.co',
+  'https://www.flexygig.co',
+  // Optional: include your known Vercel prod domains explicitly (not required if using *.vercel.app rule)
+  'https://flexygig-nine.vercel.app',
+  'https://flexygig-ta3d.vercel.app'
+];
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // allow curl / server-to-server requests
+  const normalized = origin.replace(/\/$/, '');
+
+  return (
+    allowedOrigins.includes(normalized) ||
+    normalized.endsWith('.vercel.app')
+  );
+}
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Normalize the origin by removing the trailing slash, if present
     const normalizedOrigin = origin ? origin.replace(/\/$/, '') : origin;
 
-    if (!normalizedOrigin || allowedOrigins.includes(normalizedOrigin)) {
+    if (isAllowedOrigin(normalizedOrigin)) {
       callback(null, true);
     } else {
       console.error(`CORS error: Origin ${normalizedOrigin} is not allowed.`);
@@ -28,11 +51,21 @@ app.use(cors({
 // middleware set up to parse the JSON body
 app.use(express.json());
 
-// Ensure SESSION_SECRET is defined, with a fallback for development
+/**
+ * Sessions
+ * IMPORTANT for Vercel(frontend) -> Render(backend) cross-site cookies:
+ * - sameSite must be 'none'
+ * - secure must be true in production (required by browsers when sameSite='none')
+ * - trust proxy must be enabled on Render so secure cookies work correctly behind proxy
+ */
+app.set('trust proxy', 1);
+
 const sessionSecret = process.env.SESSION_SECRET || 'default-secret-key';
 if (sessionSecret === 'default-secret-key') {
   console.warn("Warning: SESSION_SECRET is not set. Using a default secret. This is insecure for production.");
 }
+
+const isProd = process.env.NODE_ENV === 'production';
 
 app.use(session({
   secret: sessionSecret,
@@ -40,8 +73,8 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Ensures cookies are sent over HTTPS in production
-    sameSite: 'strict', // Prevents CSRF attacks
+    secure: isProd,          // true on Render (https)
+    sameSite: isProd ? 'none' : 'lax', // 'none' for cross-site cookies in prod
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
 }));
@@ -70,8 +103,8 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     cb(null, Date.now() + "-" + file.originalname);
   },
-
 });
+
 const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('photo'), (req, res) => {
@@ -81,7 +114,7 @@ app.post('/upload', upload.single('photo'), (req, res) => {
   }
   console.log("File received:", req.file);
   res.json({ imageUrl: `/uploads/${req.file.filename}` });
-})
+});
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -91,8 +124,6 @@ app.use('/api', jobRouter);
 app.use('/api', calendar);
 app.use('/api', workersRouter);
 app.use('/api', businessRoutes);
-//app.use('/api', userRouter);
-
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}!!!`);
