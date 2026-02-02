@@ -6,7 +6,7 @@ const session = require('express-session');
 require('dotenv').config(); // Load environment variables from .env file
 
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080', 'https://flexygig.co', 'https://www.flexygig.co'];
 
@@ -94,6 +94,6 @@ app.use('/api', businessRoutes);
 //app.use('/api', userRouter);
 
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}!!!`);
 });
