@@ -23,7 +23,7 @@ const SignIn = () => {
 
   const handleSignIn = (e) => {
     e.preventDefault();
-    axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/login`, signInData, { withCredentials: true })
+    axios.post(`/api/login`, signInData, { withCredentials: true })
       .then(async (response) => {
         if (
           response.data.success === false ||
@@ -33,7 +33,7 @@ const SignIn = () => {
         } else {
           try {
             // Fetch the full user object including userImage
-            const userRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/me`, { withCredentials: true });
+            const userRes = await axios.get(`/api/me`, { withCredentials: true });
 
             localStorage.setItem("user", JSON.stringify(userRes.data));
             setUser(userRes.data);
