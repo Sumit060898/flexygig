@@ -5,94 +5,102 @@ const router = express.Router();
 const user_queries = require('../queries/user_queries.js');
 const bcrypt = require('bcryptjs');
 const crypto = require("crypto");
-const nodemailer = require('nodemailer');
 const workers_queries = require('../queries/workers_queries.js');
 require('dotenv').config();
 
 /**
- * Helper: send a generic email. Returns { success: boolean, info?:object, error?:Error }
+ * SendGrid (HTTP API) — avoids Render->SMTP timeouts.
+ * Required env vars on Render:
+ *   SENDGRID_API_KEY = <your key>
+ *   EMAIL_FROM       = <a verified SendGrid sender, e.g. "FlexyGig <you@something.com>" or "you@gmail.com">
+ *   FRONTEND_URL     = https://flexygig-nine.vercel.app
  */
-async function sendEmail({ to, subject, html, from }) {
-  // require minimal SMTP env vars
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure = process.env.SMTP_SECURE === "true"; // true for 465
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+const sgMail = require('@sendgrid/mail');
 
-  if (!host || !user || !pass) {
-    const errMsg = `Missing SMTP config. SMTP_HOST=${!!host}, SMTP_USER=${!!user}, SMTP_PASS=${!!pass}`;
-    console.error(errMsg);
-    return { success: false, error: new Error(errMsg) };
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user,
-      pass
-    },
-    // optional: allow self-signed certs in some hosted envs (only if needed)
-    tls: {
-      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false"
-    }
-  });
-
-  const mailOptions = {
-    from: from || process.env.EMAIL_FROM || process.env.SMTP_USER,
-    to,
-    subject,
-    html
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${to}: ${info.messageId}`);
-    return { success: true, info };
-  } catch (error) {
-    console.error(`Error sending email to ${to}:`, error);
-    return { success: false, error };
-  }
+if (!process.env.SENDGRID_API_KEY) {
+  console.warn("Warning: SENDGRID_API_KEY is not set. Verification emails will fail.");
+} else {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
 /**
- * sendVerificationEmail: wrapper that builds verification link
- * returns boolean success
+ * Single source of truth for frontend URL
+ */
+function getFrontendUrl() {
+  const url = process.env.FRONTEND_URL || process.env.REACT_APP_FRONTEND_URL || '';
+  return url.replace(/\/$/, '');
+}
+
+/**
+ * Email: verification
+ * Email link goes to FRONTEND: /verify-email/:token
+ * (Frontend should call backend GET /api/verify/:token to complete verification.)
  */
 async function sendVerificationEmail(email, token) {
+  const frontendUrl = getFrontendUrl();
+  const verifyLink = `${frontendUrl}/verify-email/${token}`;
+
+  if (!process.env.SENDGRID_API_KEY) return false;
+
   try {
-    const frontendUrl = process.env.FRONTEND_URL || process.env.REACT_APP_FRONTEND_URL || '';
-    const verifyLink = frontendUrl ? `${frontendUrl.replace(/\/$/, '')}/verify-email/${token}` : `verify-email/${token}`;
-
-    const html = `
-      <p>Thanks for signing up!</p>
-      <p>Please verify your email by clicking the link below:</p>
-      <p><a href="${verifyLink}">${verifyLink}</a></p>
-      <p>If the link doesn't work, copy-paste the URL into your browser.</p>
-    `;
-
-    const res = await sendEmail({
+    await sgMail.send({
       to: email,
+      from: process.env.EMAIL_FROM, // must be a verified sender in SendGrid
       subject: "Verify your FlexyGig account",
-      html
+      html: `
+        <p>Thanks for signing up!</p>
+        <p>Please verify your email by clicking the link below:</p>
+        <p><a href="${verifyLink}">${verifyLink}</a></p>
+        <p>If the link doesn't work, copy-paste the URL into your browser.</p>
+      `
     });
 
-    return res.success;
+    console.log("Verification email sent to:", email);
+    return true;
   } catch (err) {
-    console.error("sendVerificationEmail unexpected error:", err);
+    console.error("Error sending verification email:", err?.response?.body || err);
     return false;
   }
 }
 
 /**
- * Registration route (improved handling)
+ * Email: password reset
+ * Email link goes to FRONTEND: /password-reset/:token
+ */
+async function sendPasswordResetEmail(email, resetToken) {
+  const frontendUrl = getFrontendUrl();
+  const resetLink = `${frontendUrl}/password-reset/${resetToken}`;
+
+  if (!process.env.SENDGRID_API_KEY) return false;
+
+  try {
+    await sgMail.send({
+      to: email,
+      from: process.env.EMAIL_FROM,
+      subject: "FlexyGig - Password Reset",
+      html: `
+        <p>You requested a password reset.</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>If you didn't request this, ignore this email.</p>
+      `
+    });
+
+    console.log("Password reset email sent to:", email);
+    return true;
+  } catch (err) {
+    console.error("Error sending password reset email:", err?.response?.body || err);
+    return false;
+  }
+}
+
+/**
+ * register (direct insert into users) + verification token stored
+ * NOTE: This flow assumes your login logic blocks unverified users.
  */
 router.post("/register", async (req, res) => {
   const { email, password, accountType, phone_number, photo, firstName, lastName, businessName, businessDescription } = req.body;
 
-  console.log("Incoming registration data:", { email, accountType, phone_number, firstName, lastName, businessName });
+  console.log("Incoming registration data:", { email, accountType });
 
   if (!email || !password || !accountType) {
     res.status(400).send("Invalid credentials");
@@ -100,71 +108,51 @@ router.post("/register", async (req, res) => {
   }
 
   try {
-    // check if email is not already in db
     const foundUser = await user_queries.getUserByEmail(email);
-
     if (foundUser) {
       res.status(400).send("Email already exists");
       return;
     }
 
-    // turn accountType to boolean isBusiness
     let isBusiness = "";
-    if (accountType === "Worker") {
-      isBusiness = "false";
-    } else if (accountType === "Employer") {
-      isBusiness = "true";
-    }
+    if (accountType === "Worker") isBusiness = "false";
+    else if (accountType === "Employer") isBusiness = "true";
 
-    // add user into database
     const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await user_queries.addUser(email, hashedPassword, isBusiness, phone_number, photo);
 
-    console.log("User added:", user);
-
-    // add name to the appropriate table based on accountType
     if (accountType === "Worker") {
       await user_queries.addWorker(user.id, firstName, lastName);
     } else if (accountType === "Employer") {
       await user_queries.addBusiness(user.id, businessName, businessDescription);
     }
 
-    // generate a verification token and save it
     const verificationToken = crypto.randomBytes(64).toString('hex');
     await user_queries.saveVerificationToken(user.id, verificationToken);
 
     const updatedUser = await user_queries.getUserById(user.id);
 
-    // respond to the client first so they don't wait for email
+    // respond immediately
     res.status(200).json({
       message: "User registered successfully. Please check your email for verification.",
       user: updatedUser
     });
 
-    // fire-and-forget email send (log result). do NOT throw here if email fails.
-    sendVerificationEmail(email, verificationToken)
-      .then(success => {
-        if (!success) {
-          console.error(`Failed to send verification email to ${email}`);
-        } else {
-          console.log(`Verification email queued/sent to ${email}`);
-        }
-      })
-      .catch(err => {
-        console.error("Unexpected error while sending verification email:", err);
-      });
+    // send email async
+    sendVerificationEmail(email, verificationToken).then((ok) => {
+      if (!ok) console.error(`Failed to send verification email to ${email}`);
+    });
 
   } catch (error) {
     console.error('Error during user registration:', error);
-    // If we haven't already responded:
-    if (!res.headersSent) {
-      res.status(500).send('Internal Server Error');
-    }
+    if (!res.headersSent) res.status(500).send('Internal Server Error');
   }
 });
 
 /**
- * Verification link handler
+ * verify (pending_users flow)
+ * If you are using pending_users signup, the frontend should call:
+ *   GET /api/verify/:token
  */
 router.get('/verify/:token', async (req, res) => {
   const { token } = req.params;
@@ -180,7 +168,7 @@ router.get('/verify/:token', async (req, res) => {
 
     const existingUser = await user_queries.getUserByEmail(pending.email);
     if (existingUser) {
-      await db.query(`DELETE FROM pending_users WHERE token = $1;`, [token]); // Cleanup
+      await db.query(`DELETE FROM pending_users WHERE token = $1;`, [token]);
       return res.status(400).json({ message: "User already verified" });
     }
 
@@ -213,10 +201,12 @@ router.get('/verify/:token', async (req, res) => {
       for (const skill of skills) {
         await workers_queries.addWorkerSkill(worker.id, skill.skill_id);
       }
+
       const experiences = typeof pending.experiences === "string" ? JSON.parse(pending.experiences) : pending.experiences;
       for (const experience of experiences) {
         await workers_queries.addWorkerExperience(worker.id, experience.experience_id);
       }
+
       const traits = typeof pending.traits === "string" ? JSON.parse(pending.traits) : pending.traits;
       for (const trait of traits) {
         await workers_queries.addWorkerTrait(worker.id, trait.trait_id);
@@ -229,6 +219,7 @@ router.get('/verify/:token', async (req, res) => {
 
     req.session.user_id = user.id;
     res.status(200).json(user);
+
   } catch (error) {
     console.error("Error verifying pending user:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -236,7 +227,7 @@ router.get('/verify/:token', async (req, res) => {
 });
 
 /**
- * Validate token (used by frontend to check link)
+ * validate-token (frontend helper)
  */
 router.get('/validate-token/:token', async (req, res) => {
   const { token } = req.params;
@@ -251,41 +242,37 @@ router.get('/validate-token/:token', async (req, res) => {
 });
 
 /**
- * Resend verification email for an existing user (not pending)
+ * resend verification (for existing user)
  */
 router.post('/resend-verification', async (req, res) => {
   const { email } = req.body;
 
   try {
-    const response = await resendVerificationEmail(email);
-    res.status(response.success ? 200 : 400).json(response);
-  } catch (error) {
-    console.error("Error resending verification email:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
-
-const resendVerificationEmail = async (email) => {
-  try {
     const user = await user_queries.getUserByEmail(email);
 
     if (!user) {
-      return { success: false, message: 'User not found.' };
+      res.status(400).json({ success: false, message: 'User not found.' });
+      return;
     }
 
     const token = crypto.randomBytes(64).toString('hex');
-    const userId = await user_queries.insertOrUpdateToken(user.id, token);
+    await user_queries.insertOrUpdateToken(user.id, token);
 
     const sent = await sendVerificationEmail(email, token);
-    return { success: sent, message: sent ? 'Verification email sent successfully.' : 'Failed to send verification email.' };
+
+    res.status(sent ? 200 : 500).json({
+      success: sent,
+      message: sent ? 'Verification email sent successfully.' : 'Failed to send verification email.'
+    });
   } catch (error) {
-    console.error('Error resending verification email:', error);
-    return { success: false, message: 'Internal Server Error' };
+    console.error("Error resending verification email:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-};
+});
 
 /**
- * Create pending user (used by frontend sign-up -> pending -> verify flow)
+ * pending-register (recommended for email verification gating)
+ * Creates pending_users row and sends verification email.
  */
 router.post("/pending-register", async (req, res) => {
   const {
@@ -350,18 +337,13 @@ router.post("/pending-register", async (req, res) => {
       JSON.stringify(traits)
     ]);
 
-    // respond first, then send email asynchronously
+    // respond first
     res.status(200).json({ message: "Please check your email to complete registration." });
 
-    sendVerificationEmail(email, token)
-      .then(success => {
-        if (!success) {
-          console.error(`Failed to send pending verification email to ${email}`);
-        } else {
-          console.log(`Pending verification email sent to ${email}`);
-        }
-      })
-      .catch(err => console.error("Unexpected error sending pending verification email:", err));
+    // send email async
+    sendVerificationEmail(email, token).then((ok) => {
+      if (!ok) console.error(`Failed to send pending verification email to ${email}`);
+    });
 
   } catch (error) {
     console.error("Error creating pending user:", error);
@@ -370,7 +352,7 @@ router.post("/pending-register", async (req, res) => {
 });
 
 /**
- * Login
+ * login
  */
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -396,7 +378,7 @@ router.post("/login", (req, res) => {
 });
 
 /**
- * Get current logged-in user
+ * me
  */
 router.get("/me", async (req, res) => {
   try {
@@ -418,8 +400,7 @@ router.get("/me", async (req, res) => {
 });
 
 /**
- * Password reset: initiate
- * This now uses sendEmail helper and returns success/failure.
+ * password reset - initiate
  */
 router.post("/initiate-password-reset", async (req, res) => {
   const { email } = req.body;
@@ -440,23 +421,9 @@ router.post("/initiate-password-reset", async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     await user_queries.saveUserResetToken(user.id, resetToken);
 
-    const frontendUrl = process.env.FRONTEND_URL || '';
-    const resetLink = frontendUrl ? `${frontendUrl.replace(/\/$/, '')}/password-reset/${resetToken}` : `password-reset/${resetToken}`;
+    const sent = await sendPasswordResetEmail(email, resetToken);
 
-    const html = `
-      <p>You requested a password reset. Click the link below to reset your password:</p>
-      <p><a href="${resetLink}">${resetLink}</a></p>
-      <p>If you didn't request this, ignore this email.</p>
-    `;
-
-    const emailRes = await sendEmail({
-      to: email,
-      subject: 'FlexyGig - Password Reset',
-      html
-    });
-
-    if (!emailRes.success) {
-      console.error("Failed to send password reset email:", emailRes.error);
+    if (!sent) {
       res.status(500).json({ success: false, message: 'Failed to send reset email' });
       return;
     }
@@ -469,7 +436,7 @@ router.post("/initiate-password-reset", async (req, res) => {
 });
 
 /**
- * Password reset: complete
+ * password reset - complete
  */
 router.post("/reset-password", async (req, res) => {
   const { newPassword, confirmPassword, uniqueIdentifier } = req.body;
@@ -499,23 +466,21 @@ router.post("/reset-password", async (req, res) => {
 });
 
 /**
- * Logout
+ * logout
  */
 router.post("/logout", (req, res) => {
   req.session.destroy(err => {
-    if (err) {
-      console.error("Error destroying session:", err);
-    }
+    if (err) console.error("Error destroying session:", err);
     res.status(200).send();
   });
 });
 
 /**
- * Messaging / conversation / search routes (kept as-is)
+ * Conversation + messaging + search routes (unchanged)
  */
-
 router.get('/conversation-partners/:userId', async (req, res) => {
   const { userId } = req.params;
+
   try {
     const partners = await user_queries.getConversationPartners(userId);
     res.status(200).json({ success: true, partners });
