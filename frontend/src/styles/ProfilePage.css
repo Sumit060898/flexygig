@@ -394,3 +394,25 @@ input[type=checkbox] {
 .form-item-button-selected:hover {
   background-color: #012a9E;
 }
+
+.profile-switcher {
+  margin-bottom: 20px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-switcher-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.profile-switcher-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}

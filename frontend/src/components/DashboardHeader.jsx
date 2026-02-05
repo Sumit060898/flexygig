@@ -12,7 +12,11 @@ import { useNavigate } from "react-router-dom";
 const DashboardHeader = () => {
 
     const { user } = useUser();
-    const { worker } = useWorker();
+
+    // ✅ Minimal change: also read activeProfile for multi-profile support.
+    // Keep `worker` for backward compatibility with existing WorkerContext usage.
+    const { worker, activeProfile } = useWorker();
+
     const { business } = useBusiness();
     const { logout } = useUser();
 
@@ -46,6 +50,12 @@ const DashboardHeader = () => {
         ? `${backendURL}${user.userImage.startsWith("/") ? "" : "/"}${user.userImage}`
         : DefaultAvatar;
 
+    // ✅ Minimal change: name should come from active profile if worker user has multiple profiles
+    const workerDisplayName =
+        activeProfile?.first_name ||
+        worker?.first_name ||
+        "User";
+
     return (
         <div className="dashboard-header">
             <div className="header-section left">
@@ -73,7 +83,7 @@ const DashboardHeader = () => {
                     <div className="user-info" onClick={toggleDropdown}>
                         <img src={profilePic} alt="User Avatar" className="user-avatar" />
                         <span className="user-name">
-                            {user ? user.isbusiness ? business?.business_name || "Business" : `${worker?.first_name || "User"}` : "User"}
+                            {user ? user.isbusiness ? business?.business_name || "Business" : `${workerDisplayName}` : "User"}
                         </span>
                         <span className="dropdown-arrow">▼</span>
                     </div>
