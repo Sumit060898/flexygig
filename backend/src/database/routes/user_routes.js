@@ -2,18 +2,16 @@
 const express = require('express');
 const db = require('../connection.js');
 const router = express.Router();
-const user_queries = require('../queries/user_queries.js');
+const user_queries = require('../queries/user_queries.js'); // still used for user helpers
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const workers_queries = require('../queries/workers_queries.js');
+const workers_queries = require('../queries/workers_queries.js'); // still used for skill/trait helpers
 require('dotenv').config();
 
 /**
- * SendGrid (HTTP API) — avoids Render->SMTP timeouts.
+ * SendGrid (HTTP API)
  * Required env vars on Render:
- *   SENDGRID_API_KEY = <your key>
- *   EMAIL_FROM       = <a verified SendGrid sender, e.g. "FlexyGig <you@gmail.com>">
- *   FRONTEND_URL     = https://flexygig-nine.vercel.app
+ *   SENDGRID_API_KEY, EMAIL_FROM, FRONTEND_URL
  */
 const sgMail = require('@sendgrid/mail');
 
@@ -28,15 +26,9 @@ function getFrontendUrl() {
   return url.replace(/\/$/, '');
 }
 
-/**
- * IMPORTANT:
- * Your backend verification endpoint is: GET /api/verify/:token
- * Your frontend route should be: /verify/:token (page that calls backend and shows success)
- *
- * So the email link MUST point to: FRONTEND_URL + "/verify/" + token
- */
 async function sendVerificationEmail(email, token) {
   const frontendUrl = getFrontendUrl();
+  // Frontend route expects /verify/:token which calls backend GET /api/verify/:token
   const verifyLink = `${frontendUrl}/verify/${token}`;
 
   if (!process.env.SENDGRID_API_KEY) return false;
@@ -44,7 +36,7 @@ async function sendVerificationEmail(email, token) {
   try {
     await sgMail.send({
       to: email,
-      from: process.env.EMAIL_FROM, // must be a verified sender in SendGrid
+      from: process.env.EMAIL_FROM,
       subject: 'Verify your FlexyGig account',
       html: `
         <p>Thanks for signing up!</p>
@@ -89,11 +81,41 @@ async function sendPasswordResetEmail(email, resetToken) {
 }
 
 /**
- * register (direct insert into users) + verification token stored
- * NOTE:
- * - This adds user directly to users table.
- * - Your login must block unverified users (your user_queries already seems to do that).
- * - Verification endpoint below for THIS flow is: GET /api/verify-email/:token
+ * Utility: create worker profile row
+ * Returns the inserted worker row.
+ */
+async function createWorkerProfile(userId, firstName, lastName, profileName = 'Default', isPrimary = false) {
+  const client = db;
+  const insertQuery = `
+    INSERT INTO workers (user_id, first_name, last_name, profile_name, is_primary, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    RETURNING *;
+  `;
+  const values = [userId, firstName || '', lastName || '', profileName || 'Default', !!isPrimary];
+  const { rows } = await client.query(insertQuery, values);
+  return rows[0];
+}
+
+/**
+ * Ensure only one primary profile per user.
+ * Marks all other profiles for user as is_primary = false, then sets the target workerId to true.
+ */
+async function setPrimaryProfile(userId, workerId) {
+  const client = db;
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE workers SET is_primary = false WHERE user_id = $1;', [userId]);
+    const { rows } = await client.query('UPDATE workers SET is_primary = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING *;', [workerId, userId]);
+    await client.query('COMMIT');
+    return rows[0] || null;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  }
+}
+
+/**
+ * register (direct insert into users) + create default worker profile (if Worker)
  */
 router.post('/register', async (req, res) => {
   const {
@@ -125,11 +147,16 @@ router.post('/register', async (req, res) => {
     else if (accountType === 'Employer') isBusiness = 'true';
 
     const hashedPassword = bcrypt.hashSync(password, 10);
+    // add user using existing helper
     const user = await user_queries.addUser(email, hashedPassword, isBusiness, phone_number, photo);
 
+    // create a default worker profile row if accountType Worker
     if (accountType === 'Worker') {
-      await user_queries.addWorker(user.id, firstName, lastName);
+      // create profile_name = 'Default' and make it primary
+      const workerRow = await createWorkerProfile(user.id, firstName, lastName, 'Default', true);
+      console.log('Created default worker profile:', workerRow.id);
     } else if (accountType === 'Employer') {
+      // use existing helper for business table
       await user_queries.addBusiness(user.id, businessName, businessDescription);
     }
 
@@ -143,7 +170,7 @@ router.post('/register', async (req, res) => {
       user: updatedUser,
     });
 
-    // async email
+    // async email send
     sendVerificationEmail(email, verificationToken).then((ok) => {
       if (!ok) console.error(`Failed to send verification email to ${email}`);
     });
@@ -154,10 +181,8 @@ router.post('/register', async (req, res) => {
 });
 
 /**
- * ✅ PENDING REGISTER (recommended)
- * - Stores user in pending_users
- * - Email link goes to frontend /verify/:token
- * - Frontend page should call backend GET /api/verify/:token
+ * pending-register (recommended)
+ * - Creates pending_users row and sends verification email.
  */
 router.post('/pending-register', async (req, res) => {
   const {
@@ -239,9 +264,8 @@ router.post('/pending-register', async (req, res) => {
 });
 
 /**
- * ✅ VERIFY (pending_users flow)
- * Frontend should call:
- *   GET /api/verify/:token
+ * verify (pending_users flow)
+ * Frontend should call GET /api/verify/:token to complete verification
  */
 router.get('/verify/:token', async (req, res) => {
   const { token } = req.params;
@@ -272,6 +296,7 @@ router.get('/verify/:token', async (req, res) => {
 
     const locationId = locationResult.rows[0].location_id;
 
+    // create user
     const user = await user_queries.addUser(
       pending.email,
       pending.password,
@@ -281,22 +306,26 @@ router.get('/verify/:token', async (req, res) => {
       locationId
     );
 
+    // create worker profile (if worker)
     if (pending.account_type === 'Worker') {
-      const worker = await user_queries.addWorker(user.id, pending.first_name, pending.last_name);
+      // create worker profile row and mark as primary if none exist
+      const workerRow = await createWorkerProfile(user.id, pending.first_name, pending.last_name, 'Default', true);
 
+      // insert skills/experiences/traits if present
       const skillsParsed = typeof pending.skills === 'string' ? JSON.parse(pending.skills) : pending.skills;
       for (const skill of skillsParsed || []) {
-        await workers_queries.addWorkerSkill(worker.id, skill.skill_id);
+        // workers_queries.addWorkerSkill expects workersId, skillId
+        await workers_queries.addWorkerSkill(workerRow.id, skill.skill_id);
       }
 
       const expParsed = typeof pending.experiences === 'string' ? JSON.parse(pending.experiences) : pending.experiences;
       for (const experience of expParsed || []) {
-        await workers_queries.addWorkerExperience(worker.id, experience.experience_id);
+        await workers_queries.addWorkerExperience(workerRow.id, experience.experience_id);
       }
 
       const traitsParsed = typeof pending.traits === 'string' ? JSON.parse(pending.traits) : pending.traits;
       for (const trait of traitsParsed || []) {
-        await workers_queries.addWorkerTrait(worker.id, trait.trait_id);
+        await workers_queries.addWorkerTrait(workerRow.id, trait.trait_id);
       }
     } else {
       await user_queries.addBusiness(user.id, pending.business_name, pending.business_description || '');
@@ -304,7 +333,7 @@ router.get('/verify/:token', async (req, res) => {
 
     await db.query('DELETE FROM pending_users WHERE token = $1;', [token]);
 
-    // OPTIONAL: auto-login after verification
+    // auto-login user
     req.session.user_id = user.id;
 
     res.status(200).json({ success: true, message: 'Email verified', user });
@@ -330,7 +359,7 @@ router.get('/validate-token/:token', async (req, res) => {
 });
 
 /**
- * resend-verification (works for "users" flow, not pending_users)
+ * resend-verification (for existing users flow)
  */
 router.post('/resend-verification', async (req, res) => {
   const { email } = req.body;
@@ -355,6 +384,106 @@ router.post('/resend-verification', async (req, res) => {
   } catch (error) {
     console.error('Error resending verification email:', error);
     res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
+
+/**
+ * Worker profiles management endpoints
+ */
+
+/**
+ * GET /api/worker-profiles/:userId
+ * Returns all worker profiles for a user
+ */
+router.get('/worker-profiles/:userId', async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (Number.isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+
+  try {
+    const { rows } = await db.query('SELECT * FROM workers WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC;', [userId]);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Error fetching worker profiles:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+/**
+ * POST /api/worker-profiles
+ * Body: { userId, firstName, lastName, profileName, makePrimary }
+ * Creates new profile. If makePrimary=true, toggles primary for user.
+ */
+router.post('/worker-profiles', async (req, res) => {
+  const { userId, firstName, lastName, profileName, makePrimary } = req.body;
+
+  if (!userId) return res.status(400).json({ message: 'Missing userId' });
+
+  try {
+    // If user does not exist, return error
+    const user = await user_queries.getUserById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // If makePrimary true, clear previous primary
+    if (makePrimary) {
+      await db.query('UPDATE workers SET is_primary = false WHERE user_id = $1;', [userId]);
+    }
+
+    const workerRow = await createWorkerProfile(userId, firstName, lastName, profileName || 'Default', !!makePrimary);
+    res.status(201).json({ success: true, profile: workerRow });
+  } catch (err) {
+    console.error('Error creating worker profile:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+/**
+ * POST /api/worker-profiles/:userId/primary/:workerId
+ * Set the specified worker profile as primary for the user.
+ */
+router.post('/worker-profiles/:userId/primary/:workerId', async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  const workerId = parseInt(req.params.workerId, 10);
+
+  if (Number.isNaN(userId) || Number.isNaN(workerId)) return res.status(400).json({ message: 'Invalid ids' });
+
+  try {
+    const updated = await setPrimaryProfile(userId, workerId);
+    if (!updated) return res.status(404).json({ message: 'Worker profile not found for user' });
+    res.status(200).json({ success: true, profile: updated });
+  } catch (err) {
+    console.error('Error setting primary profile:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+/**
+ * DELETE /api/worker-profiles/:userId/:workerId
+ * Delete a specific worker profile. If deleting primary, picks another profile to be primary (first available).
+ */
+router.delete('/worker-profiles/:userId/:workerId', async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  const workerId = parseInt(req.params.workerId, 10);
+
+  if (Number.isNaN(userId) || Number.isNaN(workerId)) return res.status(400).json({ message: 'Invalid ids' });
+
+  try {
+    // Delete the worker profile
+    const { rowCount } = await db.query('DELETE FROM workers WHERE id = $1 AND user_id = $2;', [workerId, userId]);
+    if (rowCount === 0) return res.status(404).json({ message: 'Worker profile not found' });
+
+    // Ensure there is a primary profile for user; if none, pick the earliest one
+    const { rows: primRows } = await db.query('SELECT id FROM workers WHERE user_id = $1 AND is_primary = true LIMIT 1;', [userId]);
+    if (primRows.length === 0) {
+      const { rows } = await db.query('SELECT id FROM workers WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1;', [userId]);
+      if (rows.length > 0) {
+        await db.query('UPDATE workers SET is_primary = true WHERE id = $1;', [rows[0].id]);
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Profile deleted' });
+  } catch (err) {
+    console.error('Error deleting worker profile:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 

@@ -232,7 +232,117 @@ const getWorkerTraitsWithId = (workersId) => {
     });
 }
 
+const getWorkerProfilesByUserId = async (userId) => {
+  const q = `
+    SELECT *
+    FROM workers
+    WHERE user_id = $1
+    ORDER BY is_primary DESC, id ASC;
+  `;
+  const { rows } = await db.query(q, [userId]);
+  return rows;
+};
+
+const getPrimaryWorkerProfile = async (userId) => {
+  const q = `
+    SELECT *
+    FROM workers
+    WHERE user_id = $1 AND is_primary = true
+    ORDER BY id ASC
+    LIMIT 1;
+  `;
+  const { rows } = await db.query(q, [userId]);
+  return rows[0] || null;
+};
+
+const getWorkerProfileById = async (workerId) => {
+  const q = `SELECT * FROM workers WHERE id = $1 LIMIT 1;`;
+  const { rows } = await db.query(q, [workerId]);
+  return rows[0] || null;
+};
+
+const createWorkerProfile = async ({
+  userId,
+  firstName,
+  lastName,
+  profileName,
+  makePrimary = false
+}) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    if (makePrimary) {
+      await client.query(
+        `UPDATE workers SET is_primary = false, updated_at = NOW()
+         WHERE user_id = $1 AND is_primary = true;`,
+        [userId]
+      );
+    }
+
+    const insert = `
+      INSERT INTO workers (user_id, first_name, last_name, profile_name, is_primary, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,NOW(),NOW())
+      RETURNING *;
+    `;
+    const { rows } = await client.query(insert, [
+      userId,
+      firstName,
+      lastName,
+      profileName,
+      !!makePrimary
+    ]);
+
+    await client.query('COMMIT');
+    return rows[0];
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+const setPrimaryWorkerProfile = async (userId, workerProfileId) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Ensure profile belongs to user
+    const check = await client.query(
+      `SELECT id FROM workers WHERE id = $1 AND user_id = $2 LIMIT 1;`,
+      [workerProfileId, userId]
+    );
+    if (check.rows.length === 0) {
+      throw new Error("Worker profile not found for this user");
+    }
+
+    // Unset all
+    await client.query(
+      `UPDATE workers SET is_primary = false, updated_at = NOW()
+       WHERE user_id = $1;`,
+      [userId]
+    );
+
+    // Set target
+    await client.query(
+      `UPDATE workers SET is_primary = true, updated_at = NOW()
+       WHERE id = $1;`,
+      [workerProfileId]
+    );
+
+    await client.query('COMMIT');
+    return true;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
+  // existing exports
   fetchWorkers,
   getAllSkills,
   getAllExperiences,
@@ -248,5 +358,12 @@ module.exports = {
   getWorkerExperiencesWithId,
   addWorkerTrait,
   getWorkerTraits,
-  getWorkerTraitsWithId
-}
+  getWorkerTraitsWithId,
+
+  // new exports
+  getWorkerProfilesByUserId,
+  getPrimaryWorkerProfile,
+  getWorkerProfileById,
+  createWorkerProfile,
+  setPrimaryWorkerProfile
+};
