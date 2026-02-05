@@ -128,6 +128,9 @@ router.post('/register', async (req, res) => {
     lastName,
     businessName,
     businessDescription,
+
+    // NEW: initial profile name for worker (e.g., "Gardener")
+    defaultProfileName,
   } = req.body;
 
   if (!email || !password || !accountType) {
@@ -152,8 +155,13 @@ router.post('/register', async (req, res) => {
 
     // create a default worker profile row if accountType Worker
     if (accountType === 'Worker') {
-      // create profile_name = 'Default' and make it primary
-      const workerRow = await createWorkerProfile(user.id, firstName, lastName, 'Default', true);
+      // NEW: use provided profile name if present, else fallback to "Default"
+      const initialProfileName =
+        defaultProfileName && String(defaultProfileName).trim()
+          ? String(defaultProfileName).trim()
+          : 'Default';
+
+      const workerRow = await createWorkerProfile(user.id, firstName, lastName, initialProfileName, true);
       console.log('Created default worker profile:', workerRow.id);
     } else if (accountType === 'Employer') {
       // use existing helper for business table
@@ -202,6 +210,9 @@ router.post('/pending-register', async (req, res) => {
     skills,
     experiences,
     traits,
+
+    // NEW: initial profile name for worker (e.g., "Gardener")
+    defaultProfileName,
   } = req.body;
 
   if (!email || !password || !accountType) {
@@ -223,11 +234,17 @@ router.post('/pending-register', async (req, res) => {
     const token = crypto.randomBytes(64).toString('hex');
     const hashedPassword = bcrypt.hashSync(password, 10);
 
+    // NEW: store worker initial profile name for use during /verify
+    const initialProfileName =
+      defaultProfileName && String(defaultProfileName).trim()
+        ? String(defaultProfileName).trim()
+        : 'Default';
+
     await db.query(
       `
       INSERT INTO pending_users
-        (email, password, account_type, first_name, last_name, business_name, business_description, phone_number, photo, token, street_address, city, province, postal_code, skills, experiences, traits)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        (email, password, account_type, first_name, last_name, business_name, business_description, phone_number, photo, token, street_address, city, province, postal_code, skills, experiences, traits, profile_name)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
     `,
       [
         email,
@@ -247,6 +264,9 @@ router.post('/pending-register', async (req, res) => {
         JSON.stringify(skills),
         JSON.stringify(experiences),
         JSON.stringify(traits),
+
+        // NEW column value
+        initialProfileName,
       ]
     );
 
