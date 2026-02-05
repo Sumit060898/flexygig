@@ -81,12 +81,17 @@ CREATE TABLE schedule (
     endTime TIME,
     title VARCHAR(255) NOT NULL
 );
-
 CREATE TABLE workers (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES users(id) ON DELETE CASCADE,
   first_name VARCHAR(255) NOT NULL,
   last_name VARCHAR(255) NOT NULL,
+
+  profile_name VARCHAR(255) NOT NULL DEFAULT 'Default',
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
   biography TEXT,
   desired_work_radius INT,
   desired_pay DECIMAL(10, 2),
