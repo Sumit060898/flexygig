@@ -864,18 +864,24 @@ const ProfilePage = () => {
 
                {activeProfile && !activeProfile.is_primary && (
                  <button
-                   className="edit-button"
-                   onClick={async () => {
-                     await axios.post(
-                       `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${activeProfile.id}`,
-                       {},
-                       { withCredentials: true }
-                     );
-                     window.location.reload();
-                   }}
-                 >
-                   Set as Primary
-                 </button>
+                     className="edit-button"
+                     onClick={async () => {
+                       await axios.post(
+                         `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${activeProfile.id}`,
+                         {},
+                         { withCredentials: true }
+                       );
+
+                       // ✅ update UI without hard reload:
+                       // Option A: if WorkerContext has a refresh function, call it
+                       // refreshProfiles();
+
+                       // Option B: quick local update if you don't have refreshProfiles
+                       // (best done inside WorkerContext)
+                     }}
+                   >
+                     Set as Primary
+                   </button>
                )}
              </div>
            )}

@@ -1,5 +1,5 @@
 // frontend/src/components/WorkerContext.jsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { useUser } from "./UserContext";
 
 const WorkerContext = createContext();
@@ -8,25 +8,20 @@ export const useWorker = () => useContext(WorkerContext);
 export const WorkerProvider = ({ children }) => {
   const { user } = useUser();
 
-  // All worker profiles for this user (rows from workers table)
   const [profiles, setProfiles] = useState([]);
   const [activeWorkerProfileId, setActiveWorkerProfileId] = useState(null);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
 
-  // Helper: localStorage key per-user so different accounts don't collide
   const storageKey = useMemo(() => {
     if (!user?.id) return null;
     return `activeWorkerProfileId_${user.id}`;
   }, [user?.id]);
 
-  // Active profile object (convenience)
   const activeProfile = useMemo(() => {
     if (!activeWorkerProfileId) return null;
     return profiles.find((p) => Number(p.id) === Number(activeWorkerProfileId)) || null;
   }, [profiles, activeWorkerProfileId]);
 
-  // Keep a worker-like object for backward compatibility with old components
-  // Old code expects `worker.first_name/last_name`
   const worker = activeProfile
     ? {
         ...activeProfile,
@@ -36,23 +31,76 @@ export const WorkerProvider = ({ children }) => {
       }
     : null;
 
-  // Load worker profiles whenever user changes
-  useEffect(() => {
-    // If not logged in or is business account, reset everything and remove saved key
-    if (!user || user.isbusiness) {
-      setProfiles([]);
-      setActiveWorkerProfileId(null);
+  // Setter that also persists
+  const setActiveProfile = useCallback(
+    (newId) => {
+      const idNum = newId == null ? null : Number(newId);
+      setActiveWorkerProfileId(idNum);
+
       if (storageKey) {
         try {
-          localStorage.removeItem(storageKey);
-        } catch (e) {
-          /* ignore localStorage errors in unusual environments */
+          if (idNum == null) localStorage.removeItem(storageKey);
+          else localStorage.setItem(storageKey, String(idNum));
+        } catch (e) {}
+      }
+    },
+    [storageKey]
+  );
+
+  // ✅ Centralized fetch
+  const refreshProfiles = useCallback(async () => {
+    if (!user || user.isbusiness) return;
+
+    setLoadingProfiles(true);
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}`,
+        { credentials: "include" }
+      );
+
+      if (!res.ok) {
+        console.error("Failed to fetch worker profiles:", res.status);
+        setProfiles([]);
+        setActiveProfile(null);
+        if (storageKey) {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
         }
+        return;
+      }
+
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setProfiles(list);
+
+      // Keep active selection if still exists; otherwise fall back to primary or first.
+      const currentId = activeWorkerProfileId;
+      const exists =
+        currentId != null && list.some((p) => Number(p.id) === Number(currentId));
+
+      if (exists) return;
+
+      const primary = list.find((p) => p.is_primary === true);
+      const fallback = primary || list[0] || null;
+      setActiveProfile(fallback ? fallback.id : null);
+    } catch (err) {
+      console.error("Failed to refresh worker profiles:", err);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  }, [user, user?.id, user?.isbusiness, storageKey, activeWorkerProfileId, setActiveProfile]);
+
+  // Initial load when user changes
+  useEffect(() => {
+    if (!user || user.isbusiness) {
+      setProfiles([]);
+      setActiveProfile(null);
+      if (storageKey) {
+        try { localStorage.removeItem(storageKey); } catch (e) {}
       }
       return;
     }
 
-    const fetchProfiles = async () => {
+    (async () => {
       setLoadingProfiles(true);
       try {
         const res = await fetch(
@@ -63,7 +111,7 @@ export const WorkerProvider = ({ children }) => {
         if (!res.ok) {
           console.error("Failed to fetch worker profiles:", res.status);
           setProfiles([]);
-          setActiveWorkerProfileId(null);
+          setActiveProfile(null);
           if (storageKey) {
             try { localStorage.removeItem(storageKey); } catch (e) {}
           }
@@ -71,109 +119,80 @@ export const WorkerProvider = ({ children }) => {
         }
 
         const data = await res.json();
-        setProfiles(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setProfiles(list);
 
         // Decide active profile:
-        // 1) localStorage (if valid)
+        // 1) saved localStorage (if valid)
         // 2) primary
         // 3) first
         const saved = storageKey ? localStorage.getItem(storageKey) : null;
-
-        const savedValid =
-          saved && (Array.isArray(data) ? data.some((p) => String(p.id) === String(saved)) : false);
+        const savedValid = saved && list.some((p) => String(p.id) === String(saved));
 
         if (savedValid) {
-          setActiveWorkerProfileId(Number(saved));
+          setActiveProfile(saved);
         } else {
-          const primary = (Array.isArray(data) ? data : []).find((p) => p.is_primary === true);
-          const fallback = primary || (Array.isArray(data) ? data[0] : null);
-          setActiveWorkerProfileId(fallback ? Number(fallback.id) : null);
-          if (storageKey && fallback) {
-            try { localStorage.setItem(storageKey, String(fallback.id)); } catch (e) {}
-          }
+          const primary = list.find((p) => p.is_primary === true);
+          const fallback = primary || list[0] || null;
+          setActiveProfile(fallback ? fallback.id : null);
         }
       } catch (err) {
         console.error("Failed to fetch worker profiles:", err);
         setProfiles([]);
-        setActiveWorkerProfileId(null);
+        setActiveProfile(null);
         if (storageKey) {
           try { localStorage.removeItem(storageKey); } catch (e) {}
         }
       } finally {
         setLoadingProfiles(false);
       }
-    };
+    })();
+  }, [user, user?.id, user?.isbusiness, storageKey, setActiveProfile]);
 
-    fetchProfiles();
-  }, [user, storageKey]);
+  // ✅ NEW: Set primary without reload + refresh state
+  const setPrimaryProfile = useCallback(
+    async (workerProfileId) => {
+      if (!user || user.isbusiness) return;
 
-  // Setter that also persists; accepts null to clear selection
-  const setActiveProfile = (newId) => {
-    const idNum = newId == null ? null : Number(newId);
-    setActiveWorkerProfileId(idNum);
-    if (storageKey) {
-      try {
-        if (idNum == null) {
-          localStorage.removeItem(storageKey);
-        } else {
-          localStorage.setItem(storageKey, String(idNum));
+      const res = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${workerProfileId}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
         }
-      } catch (e) {
-        /* ignore localStorage errors */
+      );
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to set primary (${res.status}) ${txt}`);
       }
-    }
-  };
+
+      // Keep the same active profile selected (just mark as primary in DB)
+      setActiveProfile(workerProfileId);
+
+      // Refresh list so UI shows "(primary)"
+      await refreshProfiles();
+    },
+    [user, refreshProfiles, setActiveProfile]
+  );
 
   return (
     <WorkerContext.Provider
       value={{
-        // Backwards-compatible
         worker,
         setWorker: () => {
-          // Intentionally no-op: worker now derives from activeProfile.
-          // (If you need to refresh, call refreshProfiles below.)
           console.warn("setWorker is deprecated. Use worker profiles APIs + refreshProfiles instead.");
         },
 
-        // New multi-profile state
         profiles,
         loadingProfiles,
         activeWorkerProfileId,
         setActiveWorkerProfileId: setActiveProfile,
         activeProfile,
 
-        // Optional: allow pages to refetch after creating a profile
-        refreshProfiles: async () => {
-          if (!user || user.isbusiness) return;
-
-          setLoadingProfiles(true);
-          try {
-            const res = await fetch(
-              `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}`,
-              { credentials: "include" }
-            );
-            if (!res.ok) return;
-
-            const data = await res.json();
-            setProfiles(Array.isArray(data) ? data : []);
-
-            // Ensure current active id still exists
-            if (activeWorkerProfileId) {
-              const exists = (Array.isArray(data) ? data : []).some(
-                (p) => Number(p.id) === Number(activeWorkerProfileId)
-              );
-              if (!exists) {
-                const primary = (Array.isArray(data) ? data : []).find((p) => p.is_primary === true);
-                const fallback = primary || (Array.isArray(data) ? data[0] : null);
-                setActiveProfile(fallback ? fallback.id : null);
-              }
-            }
-          } catch (e) {
-            console.error("Failed to refresh worker profiles:", e);
-          } finally {
-            setLoadingProfiles(false);
-          }
-        },
+        refreshProfiles,
+        setPrimaryProfile, // ✅ expose
       }}
     >
       {children}
