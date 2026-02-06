@@ -864,49 +864,27 @@ const ProfilePage = () => {
             </div>
           </div>
         ) : (
-          <div className="worker-profile">
-            <div style={{ fontSize: 12, color: "red" }}>
-              profiles: {profiles?.length || 0} | activeProfileId: {activeProfile?.id || "none"}
-            </div>
 
-            {/* Worker Profile Switcher */}
-            {profiles && profiles.length > 1 && (
-              <div className="profile-switcher">
-                <label className="profile-switcher-label">Active Profile</label>
 
-                <select
-                  className="profile-switcher-select"
-                  value={activeProfile?.id || ""}
-                  onChange={(e) => setActiveWorkerProfileId(Number(e.target.value))}
-                >
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.profile_name}
-                      {p.role_name ? ` (${p.role_name})` : ""}
-                      {p.is_primary ? " (primary)" : ""}
-                    </option>
-                  ))}
-                </select>
+         {/* Worker Profile Switcher */}
+         {profiles && profiles.length > 1 && (
+           <div className="profile-switcher">
+             <label className="profile-switcher-label">Active Profile</label>
 
-                {activeProfile && !activeProfile.is_primary && (
-                  <button
-                    className="edit-button"
-                    onClick={async () => {
-                      await axios.post(
-                        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${activeProfile.id}`,
-                        {},
-                        { withCredentials: true }
-                      );
-
-                      await refreshProfiles();
-                      setActiveWorkerProfileId(activeProfile.id);
-                    }}
-                  >
-                    Set as Primary
-                  </button>
-                )}
-              </div>
-            )}
+             <select
+               className="profile-switcher-select"
+               value={activeProfile?.id || ""}
+               onChange={(e) => setActiveWorkerProfileId(Number(e.target.value))}
+             >
+               {profiles.map((p) => (
+                 <option key={p.id} value={p.id}>
+                   {p.profile_name}
+                   {p.role_name ? ` (${p.role_name})` : ""}
+                 </option>
+               ))}
+             </select>
+           </div>
+         )}
 
             {/* ✅ NEW: Create New Profile */}
             <div style={{ marginTop: 12 }}>
