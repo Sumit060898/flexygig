@@ -9,7 +9,7 @@ import { useWorker } from "./WorkerContext";
 const ProfilePage = () => {
   const { user, setUser, logout } = useUser();
 
-  // ✅ include refreshProfiles (needed for primary switch + creation)
+ // refreshProfiles is used after creating a new profile so the dropdown updates
   const { profiles, activeProfile, setActiveWorkerProfileId, refreshProfiles } = useWorker();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +37,6 @@ const ProfilePage = () => {
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [newRoleName, setNewRoleName] = useState("");
-  const [makePrimary, setMakePrimary] = useState(false);
   const [createError, setCreateError] = useState("");
 
   const navigate = useNavigate();
@@ -262,10 +261,8 @@ const ProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setSubmit(true);
-    if (!editedUser.skills[0]) {
-      return;
-    }
+    setSubmit((prev) => !prev);
+
 
     try {
       const response = await axios.post(
@@ -411,53 +408,52 @@ const ProfilePage = () => {
   };
 
   // ✅ NEW: create profile handler
-  const handleCreateProfile = async () => {
-    setCreateError("");
+ const handleCreateProfile = async () => {
+   setCreateError("");
 
-    const profileName = newProfileName.trim();
-    const roleName = newRoleName.trim();
+   const profileName = newProfileName.trim();
+   const roleName = newRoleName.trim();
 
-    if (!profileName) {
-      setCreateError("Profile name is required.");
-      return;
-    }
+   if (!profileName) {
+     setCreateError("Profile name is required.");
+     return;
+   }
 
-    try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles`,
-        {
-          userId: user.id,
-          firstName: user.firstname || "",
-          lastName: user.lastname || "",
-          profileName,
-          roleName: roleName || null,
-          makePrimary: !!makePrimary,
-        },
-        { withCredentials: true }
-      );
+   try {
+     const res = await axios.post(
+       `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles`,
+       {
+         userId: user.id,
+         firstName: user.firstname || "",
+         lastName: user.lastname || "",
+         profileName,
+         roleName: roleName || null
+       },
+       { withCredentials: true }
+     );
 
-      const createdProfile = res.data?.profile || res.data;
+     // the response
+     const createdProfile = res.data?.profile || res.data;
 
-      await refreshProfiles();
+     // refresh list so dropdown populates (keeps user's current active profile)
+     await refreshProfiles();
 
-      if (createdProfile?.id) {
-        setActiveWorkerProfileId(Number(createdProfile.id));
-      }
+     // DO NOT auto-activate the newly-created profile
+     // if you ever want an explicit "make primary" toggle, handle that separately
 
-      setNewProfileName("");
-      setNewRoleName("");
-      setMakePrimary(false);
-      setShowCreateProfile(false);
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 409) {
-        setCreateError("That profile name already exists. Choose a different name.");
-      } else {
-        setCreateError("Failed to create profile. Try again.");
-      }
-      console.error("Create profile error:", err);
-    }
-  };
+     setNewProfileName("");
+     setNewRoleName("");
+     setShowCreateProfile(false);
+   } catch (err) {
+     const status = err?.response?.status;
+     if (status === 409) {
+       setCreateError("That profile name already exists. Choose a different name.");
+     } else {
+       setCreateError("Failed to create profile. Try again.");
+     }
+     console.error("Create profile error:", err);
+   }
+ };
 
   if (isEditingSkills) {
     return (
@@ -865,85 +861,100 @@ const ProfilePage = () => {
           </div>
         ) : (
 
-
+         <div className="worker-profile">
          {/* Worker Profile Switcher */}
-         {profiles && profiles.length > 1 && (
+         {profiles && profiles.length > 0 && (
            <div className="profile-switcher">
-             <label className="profile-switcher-label">Active Profile</label>
+             <div className="profile-switcher-row">
+               <label className="profile-switcher-label">Active Profile</label>
 
-             <select
-               className="profile-switcher-select"
-               value={activeProfile?.id || ""}
-               onChange={(e) => setActiveWorkerProfileId(Number(e.target.value))}
-             >
-               {profiles.map((p) => (
-                 <option key={p.id} value={p.id}>
-                   {p.profile_name}
-                   {p.role_name ? ` (${p.role_name})` : ""}
-                 </option>
-               ))}
-             </select>
+               <select
+                 className="profile-switcher-select"
+                 value={(activeProfile?.id ?? profiles[0]?.id) ?? ""}
+                 onChange={(e) => {
+                     const id = Number(e.target.value);
+                     if (!Number.isNaN(id) && id !== activeProfile?.id) {
+                       // switch active profile only when user explicitly selects a different profile
+                       setActiveWorkerProfileId(id);
+                     }
+                   }}
+               >
+
+                 {profiles.map((p) => (
+                   <option key={p.id} value={p.id}>
+                     {p.profile_name}
+                     {p.role_name ? ` (${p.role_name})` : ""}
+                   </option>
+                 ))}
+               </select>
+
+               <button
+                 type="button"
+                 className="profile-switcher-create"
+                 onClick={() => setShowCreateProfile(true)}
+               >
+                 + Create New Profile
+               </button>
+             </div>
            </div>
          )}
 
-            {/* ✅ NEW: Create New Profile */}
-            <div style={{ marginTop: 12 }}>
-              <button
-                className="edit-button"
-                type="button"
-                onClick={() => setShowCreateProfile((v) => !v)}
-              >
-                {showCreateProfile ? "Cancel" : "Create New Profile"}
-              </button>
 
+
+
+              {/* ✅ Create New Profile (only visible when showCreateProfile is true) */}
               {showCreateProfile && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: 12,
-                    border: "1px solid #ddd",
-                    borderRadius: 8,
-                  }}
-                >
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", marginBottom: 4 }}>Profile Name (unique)</label>
-                    <input
-                      className="input-text"
-                      type="text"
-                      value={newProfileName}
-                      onChange={(e) => setNewProfileName(e.target.value)}
-                      placeholder='e.g. "Default", "Weekend Profile"'
-                    />
+                <div className="create-profile-panel">
+                  <div className="create-profile-header">
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => setShowCreateProfile(false)}
+                    >
+                      Cancel
+                    </button>
                   </div>
 
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", marginBottom: 4 }}>Role Name (optional)</label>
-                    <input
-                      className="input-text"
-                      type="text"
-                      value={newRoleName}
-                      onChange={(e) => setNewRoleName(e.target.value)}
-                      placeholder='e.g. "Gardener", "Bartender"'
-                    />
+                  <div className="create-profile-row">
+                    <div style={{ flex: 1 }}>
+                      <label className="form-label">Profile Name (unique)</label>
+                      <input
+                        className="input-text"
+                        type="text"
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        placeholder='e.g. "Default", "Weekend Profile"'
+                      />
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <label className="form-label">Role Name (optional)</label>
+                      <input
+                        className="input-text"
+                        type="text"
+                        value={newRoleName}
+                        onChange={(e) => setNewRoleName(e.target.value)}
+                        placeholder='e.g. "Gardener", "Bartender"'
+                      />
+                    </div>
                   </div>
 
-                  <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={makePrimary}
-                      onChange={(e) => setMakePrimary(e.target.checked)}
-                    />
-                    Make this my primary profile
-                  </label>
+                  {createError && <div style={{ color: "red" }}>{createError}</div>}
 
-                  {createError && <div style={{ color: "red", marginBottom: 8 }}>{createError}</div>}
-
-                  <button className="edit-button" type="button" onClick={handleCreateProfile}>
-                    Save Profile
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="edit-button" type="button" onClick={handleCreateProfile}>
+                      Save Profile
+                    </button>
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      onClick={() => setShowCreateProfile(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               )}
-            </div>
 
             <div className="profile-section">
               <h2>Biography</h2>
@@ -986,10 +997,9 @@ const ProfilePage = () => {
         <div className="profile-footer">
           <button onClick={toggleEdit} className="edit-button">
             Edit Profile
-          </button>
-          <button onClick={handleSignOut} className="edit-button">
-            Sign Out
-          </button>
+         <button onClick={handleSignOut} className="signout-button">
+           Sign Out
+         </button>
         </div>
       </div>
 
