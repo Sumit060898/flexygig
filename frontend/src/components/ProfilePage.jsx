@@ -8,9 +8,10 @@ import { useWorker } from "./WorkerContext";
 const ProfilePage = () => {
   const { user, setUser, logout } = useUser();
   // IMPORTANT: WorkerContext exposes setActiveWorkerProfileId (not setActiveWorkerProfileId), and activeProfile
-  const { profiles, activeProfile, setActiveWorkerProfileId } = useWorker();
+  //const { profiles, activeProfile, setActiveWorkerProfileId } = useWorker();
 
   const [isEditing, setIsEditing] = useState(false);
+  const { profiles, activeProfile, setActiveWorkerProfileId, refreshProfiles } = useWorker();
 
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [isEditingTraits, setIsEditingTraits] = useState(false);
@@ -871,13 +872,14 @@ const ProfilePage = () => {
                          {},
                          { withCredentials: true }
                        );
+                    await refreshProfiles();
+                    setActiveWorkerProfileId(activeProfile.id);
 
                        // ✅ update UI without hard reload:
                        // Option A: if WorkerContext has a refresh function, call it
                        // refreshProfiles();
 
-                       // Option B: quick local update if you don't have refreshProfiles
-                       // (best done inside WorkerContext)
+
                      }}
                    >
                      Set as Primary
