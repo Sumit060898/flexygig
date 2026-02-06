@@ -1,3 +1,4 @@
+// frontend/src/components/ProfilePage.jsx
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,11 +8,11 @@ import { useWorker } from "./WorkerContext";
 
 const ProfilePage = () => {
   const { user, setUser, logout } = useUser();
-  // IMPORTANT: WorkerContext exposes setActiveWorkerProfileId (not setActiveWorkerProfileId), and activeProfile
-  //const { profiles, activeProfile, setActiveWorkerProfileId } = useWorker();
+
+  // ✅ include refreshProfiles (needed for primary switch + creation)
+  const { profiles, activeProfile, setActiveWorkerProfileId, refreshProfiles } = useWorker();
 
   const [isEditing, setIsEditing] = useState(false);
-  const { profiles, activeProfile, setActiveWorkerProfileId, refreshProfiles } = useWorker();
 
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [isEditingTraits, setIsEditingTraits] = useState(false);
@@ -31,6 +32,13 @@ const ProfilePage = () => {
   const [selectedTraits, setSelectedTraits] = useState([]);
   const [workerExp, setWorkerExp] = useState([]);
   const [selectedExp, setSelectedExp] = useState([]);
+
+  // ✅ NEW: create profile UI state
+  const [showCreateProfile, setShowCreateProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newRoleName, setNewRoleName] = useState("");
+  const [makePrimary, setMakePrimary] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   const navigate = useNavigate();
 
@@ -68,10 +76,6 @@ const ProfilePage = () => {
         });
     }
   }, [submit]); // keeping your dependency as-is
-
-  // NOTE: removed the old single worker-id fetch:
-  // axios.get(`/api/profile/worker-id/${user.id}`)
-  // Multi-profile uses activeProfile.id from WorkerContext.
 
   // When workerId changes (active profile switched), fetch skills/traits/experiences for THAT profile.
   useEffect(() => {
@@ -129,12 +133,6 @@ const ProfilePage = () => {
       });
   };
 
-  // IMPORTANT FIX (minimal):
-  // Your original code did:
-  //   axios.get(...).then(setWorkerSkills)
-  //   setSelectedSkills(workerSkills)
-  // That sets selectedSkills from STALE state (previous workerSkills).
-  // We only change the absolutely necessary line: setSelectedSkills(response.data)
   const fetchSkills = () => {
     if (!user.isbusiness && workerId) {
       axios
@@ -412,6 +410,55 @@ const ProfilePage = () => {
     }
   };
 
+  // ✅ NEW: create profile handler
+  const handleCreateProfile = async () => {
+    setCreateError("");
+
+    const profileName = newProfileName.trim();
+    const roleName = newRoleName.trim();
+
+    if (!profileName) {
+      setCreateError("Profile name is required.");
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles`,
+        {
+          userId: user.id,
+          firstName: user.firstname || "",
+          lastName: user.lastname || "",
+          profileName,
+          roleName: roleName || null,
+          makePrimary: !!makePrimary,
+        },
+        { withCredentials: true }
+      );
+
+      const createdProfile = res.data?.profile || res.data;
+
+      await refreshProfiles();
+
+      if (createdProfile?.id) {
+        setActiveWorkerProfileId(Number(createdProfile.id));
+      }
+
+      setNewProfileName("");
+      setNewRoleName("");
+      setMakePrimary(false);
+      setShowCreateProfile(false);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        setCreateError("That profile name already exists. Choose a different name.");
+      } else {
+        setCreateError("Failed to create profile. Try again.");
+      }
+      console.error("Create profile error:", err);
+    }
+  };
+
   if (isEditingSkills) {
     return (
       <div className="user-profile-form">
@@ -526,7 +573,6 @@ const ProfilePage = () => {
         <form onSubmit={handleSubmit} className="form">
           <div className="form-sections-container">
             {user.isbusiness ? (
-              // Employer Section
               <div className="form-section employer-section">
                 <>
                   <label htmlFor="business_name" className="form-label">
@@ -638,7 +684,6 @@ const ProfilePage = () => {
                 </>
               </div>
             ) : (
-              // Worker Section
               <div className="form-section worker-section">
                 <>
                   <label htmlFor="biography" className="form-label">
@@ -757,26 +802,6 @@ const ProfilePage = () => {
                     required
                   />
 
-                  {/*<label htmlFor="skills" className="form-label">
-                    Skills:
-                  </label>
-                  <div className="tags-container">
-                    {skills.map((skill) => (
-                      <div
-                        required
-                        key={skill.skill_id}
-                        onClick={() => handleSkillChange(skill.skill_name)}
-                        className={`tag ${editedUser.skills &&
-                          editedUser.skills.includes(skill.skill_name)
-                          ? "selected"
-                          : ""
-                          }`}
-                      >
-                        {skill.skill_name}
-                      </div>
-                    ))}
-                  </div>*/}
-
                   <label htmlFor="desired_pay" className="form-label">
                     Desired Pay ($/hr):
                   </label>
@@ -832,7 +857,6 @@ const ProfilePage = () => {
                 <strong>Address:</strong> {user.street_address} {""}
                 {user.city} {user.province} {""}
                 {user.postal_code}
-                {/* ^ might need apostrophes here depending onthe format we pick for addresses*/}
               </p>
               <p>
                 <strong>Website:</strong> {user.business_website}
@@ -841,54 +865,107 @@ const ProfilePage = () => {
           </div>
         ) : (
           <div className="worker-profile">
-              <div style={{ fontSize: 12, color: "red" }}>
-                profiles: {profiles?.length || 0} | activeProfileId: {activeProfile?.id || "none"}
+            <div style={{ fontSize: 12, color: "red" }}>
+              profiles: {profiles?.length || 0} | activeProfileId: {activeProfile?.id || "none"}
+            </div>
+
+            {/* Worker Profile Switcher */}
+            {profiles && profiles.length > 1 && (
+              <div className="profile-switcher">
+                <label className="profile-switcher-label">Active Profile</label>
+
+                <select
+                  className="profile-switcher-select"
+                  value={activeProfile?.id || ""}
+                  onChange={(e) => setActiveWorkerProfileId(Number(e.target.value))}
+                >
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.profile_name}
+                      {p.role_name ? ` (${p.role_name})` : ""}
+                      {p.is_primary ? " (primary)" : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {activeProfile && !activeProfile.is_primary && (
+                  <button
+                    className="edit-button"
+                    onClick={async () => {
+                      await axios.post(
+                        `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${activeProfile.id}`,
+                        {},
+                        { withCredentials: true }
+                      );
+
+                      await refreshProfiles();
+                      setActiveWorkerProfileId(activeProfile.id);
+                    }}
+                  >
+                    Set as Primary
+                  </button>
+                )}
               </div>
-           {/* Worker Profile Switcher */}
-           {profiles && profiles.length > 1 && (
-             <div className="profile-switcher">
-               <label className="profile-switcher-label">Active Profile</label>
+            )}
 
-               <select
-                 className="profile-switcher-select"
-                 value={activeProfile?.id || ""}
-                 onChange={(e) => setActiveWorkerProfileId(Number(e.target.value))}
-               >
-                 {profiles.map((p) => (
-                   <option key={p.id} value={p.id}>
-                     {p.profile_name}
-                     {p.role_name ? ` (${p.role_name})` : ""}
-                     {p.is_primary ? " (primary)" : ""}
-                   </option>
-                 ))}
-               </select>
+            {/* ✅ NEW: Create New Profile */}
+            <div style={{ marginTop: 12 }}>
+              <button
+                className="edit-button"
+                type="button"
+                onClick={() => setShowCreateProfile((v) => !v)}
+              >
+                {showCreateProfile ? "Cancel" : "Create New Profile"}
+              </button>
 
-               {activeProfile && !activeProfile.is_primary && (
-                 <button
-                     className="edit-button"
-                     onClick={async () => {
-                       await axios.post(
-                         `${process.env.REACT_APP_BACKEND_URL}/api/worker-profiles/${user.id}/primary/${activeProfile.id}`,
-                         {},
-                         { withCredentials: true }
-                       );
-                    await refreshProfiles();
-                    setActiveWorkerProfileId(activeProfile.id);
+              {showCreateProfile && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: 12,
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                  }}
+                >
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", marginBottom: 4 }}>Profile Name (unique)</label>
+                    <input
+                      className="input-text"
+                      type="text"
+                      value={newProfileName}
+                      onChange={(e) => setNewProfileName(e.target.value)}
+                      placeholder='e.g. "Default", "Weekend Profile"'
+                    />
+                  </div>
 
-                       // ✅ update UI without hard reload:
-                       // Option A: if WorkerContext has a refresh function, call it
-                       // refreshProfiles();
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", marginBottom: 4 }}>Role Name (optional)</label>
+                    <input
+                      className="input-text"
+                      type="text"
+                      value={newRoleName}
+                      onChange={(e) => setNewRoleName(e.target.value)}
+                      placeholder='e.g. "Gardener", "Bartender"'
+                    />
+                  </div>
 
+                  <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={makePrimary}
+                      onChange={(e) => setMakePrimary(e.target.checked)}
+                    />
+                    Make this my primary profile
+                  </label>
 
-                     }}
-                   >
-                     Set as Primary
-                   </button>
-               )}
-             </div>
-           )}
+                  {createError && <div style={{ color: "red", marginBottom: 8 }}>{createError}</div>}
 
-
+                  <button className="edit-button" type="button" onClick={handleCreateProfile}>
+                    Save Profile
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="profile-section">
               <h2>Biography</h2>
@@ -913,9 +990,9 @@ const ProfilePage = () => {
                 <strong>Location:</strong> {user.street_address}{" "}
                 {user.city} {user.province} {""}
                 {user.postal_code}
-                {/* ^ might need apostrophes here depending onthe format we pick for addresses*/}
               </p>
             </div>
+
             <div className="profile-section">
               <h2>Work Preferences</h2>
               <p>
@@ -927,9 +1004,13 @@ const ProfilePage = () => {
             </div>
           </div>
         )}
+
         <div className="profile-footer">
           <button onClick={toggleEdit} className="edit-button">
             Edit Profile
+          </button>
+          <button onClick={handleSignOut} className="edit-button">
+            Sign Out
           </button>
         </div>
       </div>

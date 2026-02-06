@@ -100,7 +100,8 @@ router.post("/worker-profiles", async (req, res) => {
       makePrimary: !!makePrimary,
     });
 
-    res.status(201).json(created);
+    // Return consistent shape for frontend: { profile: created }
+    res.status(201).json({ profile: created });
   } catch (err) {
     // Unique constraint for (user_id, profile_name) will land here
     const msg =
