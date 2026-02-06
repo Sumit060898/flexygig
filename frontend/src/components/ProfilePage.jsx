@@ -78,7 +78,7 @@ const ProfilePage = () => {
 
   // When workerId changes (active profile switched), fetch skills/traits/experiences for THAT profile.
   useEffect(() => {
-    if (!user || user.isbusiness) return;
+    if (!user || user.isbusiness || !workerId) return;
     if (workerId == null) return;
 
     axios
@@ -1001,6 +1001,7 @@ const ProfilePage = () => {
          <button onClick={handleSignOut} className="signout-button">
            Sign Out
          </button>
+      </div>
       </div>
 
       {!user.isbusiness && (
