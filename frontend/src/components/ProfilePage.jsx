@@ -997,10 +997,10 @@ const ProfilePage = () => {
         <div className="profile-footer">
           <button onClick={toggleEdit} className="edit-button">
             Edit Profile
+            </button>
          <button onClick={handleSignOut} className="signout-button">
            Sign Out
          </button>
-        </div>
       </div>
 
       {!user.isbusiness && (
