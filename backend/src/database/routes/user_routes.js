@@ -21,6 +21,15 @@ if (!process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
+/**
+ * Normalize email to make comparisons case-insensitive.
+ * - trims whitespace
+ * - lowercases
+ */
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
 function getFrontendUrl() {
   const url = process.env.FRONTEND_URL || process.env.REACT_APP_FRONTEND_URL || '';
   return url.replace(/\/$/, '');
@@ -105,7 +114,10 @@ async function setPrimaryProfile(userId, workerId) {
   try {
     await client.query('BEGIN');
     await client.query('UPDATE workers SET is_primary = false WHERE user_id = $1;', [userId]);
-    const { rows } = await client.query('UPDATE workers SET is_primary = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING *;', [workerId, userId]);
+    const { rows } = await client.query(
+      'UPDATE workers SET is_primary = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING *;',
+      [workerId, userId]
+    );
     await client.query('COMMIT');
     return rows[0] || null;
   } catch (err) {
@@ -133,13 +145,16 @@ router.post('/register', async (req, res) => {
     defaultProfileName,
   } = req.body;
 
-  if (!email || !password || !accountType) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail || !password || !accountType) {
     res.status(400).send('Invalid credentials');
     return;
   }
 
   try {
-    const foundUser = await user_queries.getUserByEmail(email);
+    // IMPORTANT: we normalize for lookup.
+    const foundUser = await user_queries.getUserByEmail(normalizedEmail);
     if (foundUser) {
       res.status(400).send('Email already exists');
       return;
@@ -151,15 +166,13 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = bcrypt.hashSync(password, 10);
     // add user using existing helper
-    const user = await user_queries.addUser(email, hashedPassword, isBusiness, phone_number, photo);
+    const user = await user_queries.addUser(normalizedEmail, hashedPassword, isBusiness, phone_number, photo);
 
     // create a default worker profile row if accountType Worker
     if (accountType === 'Worker') {
       // NEW: use provided profile name if present, else fallback to "Default"
       const initialProfileName =
-        defaultProfileName && String(defaultProfileName).trim()
-          ? String(defaultProfileName).trim()
-          : 'Default';
+        defaultProfileName && String(defaultProfileName).trim() ? String(defaultProfileName).trim() : 'Default';
 
       const workerRow = await createWorkerProfile(user.id, firstName, lastName, initialProfileName, true);
       console.log('Created default worker profile:', workerRow.id);
@@ -179,8 +192,8 @@ router.post('/register', async (req, res) => {
     });
 
     // async email send
-    sendVerificationEmail(email, verificationToken).then((ok) => {
-      if (!ok) console.error(`Failed to send verification email to ${email}`);
+    sendVerificationEmail(normalizedEmail, verificationToken).then((ok) => {
+      if (!ok) console.error(`Failed to send verification email to ${normalizedEmail}`);
     });
   } catch (error) {
     console.error('Error during user registration:', error);
@@ -215,18 +228,22 @@ router.post('/pending-register', async (req, res) => {
     defaultProfileName,
   } = req.body;
 
-  if (!email || !password || !accountType) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail || !password || !accountType) {
     res.status(400).json({ message: 'Missing required fields' });
     return;
   }
 
   try {
-    const existingUser = await user_queries.getUserByEmail(email);
+    // IMPORTANT: normalize lookup
+    const existingUser = await user_queries.getUserByEmail(normalizedEmail);
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    const pendingResult = await db.query('SELECT * FROM pending_users WHERE email = $1;', [email]);
+    // IMPORTANT: make pending check case-insensitive even if old rows exist
+    const pendingResult = await db.query('SELECT * FROM pending_users WHERE LOWER(email) = $1;', [normalizedEmail]);
     if (pendingResult.rows.length > 0) {
       return res.status(400).json({ message: 'A user with this email is already pending verification.' });
     }
@@ -234,39 +251,38 @@ router.post('/pending-register', async (req, res) => {
     const token = crypto.randomBytes(64).toString('hex');
     const hashedPassword = bcrypt.hashSync(password, 10);
 
-    // NEW: store worker initial profile name for use during /verify
+    // Save profile name ONLY for workers; employers don't need it.
     const initialProfileName =
-      defaultProfileName && String(defaultProfileName).trim()
+      accountType === 'Worker' && defaultProfileName && String(defaultProfileName).trim()
         ? String(defaultProfileName).trim()
         : 'Default';
 
+    // ✅ FIX: pending_users does NOT have profile_name column in your schema.
+    // So we DO NOT insert it here. We will use initialProfileName at verify-time (only for workers).
     await db.query(
       `
       INSERT INTO pending_users
-        (email, password, account_type, first_name, last_name, business_name, business_description, phone_number, photo, token, street_address, city, province, postal_code, skills, experiences, traits, profile_name)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        (email, password, account_type, first_name, last_name, business_name, business_description, phone_number, photo, token, street_address, city, province, postal_code, skills, experiences, traits)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
     `,
       [
-        email,
+        normalizedEmail,
         hashedPassword,
         accountType,
-        firstName,
-        lastName,
-        businessName,
-        businessDescription,
-        phone_number,
-        photo,
+        firstName ?? null,
+        lastName ?? null,
+        businessName ?? null,
+        businessDescription ?? null,
+        phone_number ?? null,
+        photo ?? null,
         token,
-        street_address,
-        city,
-        province,
-        postal_code,
-        JSON.stringify(skills),
-        JSON.stringify(experiences),
-        JSON.stringify(traits),
-
-        // NEW column value
-        initialProfileName,
+        street_address ?? null,
+        city ?? null,
+        province ?? null,
+        postal_code ?? null,
+        JSON.stringify(skills ?? []),
+        JSON.stringify(experiences ?? []),
+        JSON.stringify(traits ?? []),
       ]
     );
 
@@ -274,8 +290,8 @@ router.post('/pending-register', async (req, res) => {
     res.status(200).json({ message: 'Please check your email to complete registration.' });
 
     // send email async
-    sendVerificationEmail(email, token).then((ok) => {
-      if (!ok) console.error(`Failed to send pending verification email to ${email}`);
+    sendVerificationEmail(normalizedEmail, token).then((ok) => {
+      if (!ok) console.error(`Failed to send pending verification email to ${normalizedEmail}`);
     });
   } catch (error) {
     console.error('Error creating pending user:', error);
@@ -299,7 +315,10 @@ router.get('/verify/:token', async (req, res) => {
 
     const pending = result.rows[0];
 
-    const existingUser = await user_queries.getUserByEmail(pending.email);
+    // normalize again (defensive)
+    const pendingEmail = normalizeEmail(pending.email);
+
+    const existingUser = await user_queries.getUserByEmail(pendingEmail);
     if (existingUser) {
       await db.query('DELETE FROM pending_users WHERE token = $1;', [token]);
       return res.status(400).json({ message: 'User already verified' });
@@ -318,7 +337,7 @@ router.get('/verify/:token', async (req, res) => {
 
     // create user
     const user = await user_queries.addUser(
-      pending.email,
+      pendingEmail,
       pending.password,
       pending.account_type === 'Employer',
       pending.phone_number,
@@ -328,13 +347,14 @@ router.get('/verify/:token', async (req, res) => {
 
     // create worker profile (if worker)
     if (pending.account_type === 'Worker') {
-      // create worker profile row and mark as primary if none exist
+      // NOTE: since pending_users doesn't store profile_name, we default to "Default" here.
+      // If you want to allow a worker to pick a default profile name before verification,
+      // you need to add a column in pending_users OR store it elsewhere.
       const workerRow = await createWorkerProfile(user.id, pending.first_name, pending.last_name, 'Default', true);
 
       // insert skills/experiences/traits if present
       const skillsParsed = typeof pending.skills === 'string' ? JSON.parse(pending.skills) : pending.skills;
       for (const skill of skillsParsed || []) {
-        // workers_queries.addWorkerSkill expects workersId, skillId
         await workers_queries.addWorkerSkill(workerRow.id, skill.skill_id);
       }
 
@@ -383,9 +403,10 @@ router.get('/validate-token/:token', async (req, res) => {
  */
 router.post('/resend-verification', async (req, res) => {
   const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email);
 
   try {
-    const user = await user_queries.getUserByEmail(email);
+    const user = await user_queries.getUserByEmail(normalizedEmail);
 
     if (!user) {
       res.status(400).json({ success: false, message: 'User not found.' });
@@ -395,7 +416,7 @@ router.post('/resend-verification', async (req, res) => {
     const token = crypto.randomBytes(64).toString('hex');
     await user_queries.insertOrUpdateToken(user.id, token);
 
-    const sent = await sendVerificationEmail(email, token);
+    const sent = await sendVerificationEmail(normalizedEmail, token);
 
     res.status(sent ? 200 : 500).json({
       success: sent,
@@ -420,7 +441,10 @@ router.get('/worker-profiles/:userId', async (req, res) => {
   if (Number.isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
 
   try {
-    const { rows } = await db.query('SELECT * FROM workers WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC;', [userId]);
+    const { rows } = await db.query(
+      'SELECT * FROM workers WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC;',
+      [userId]
+    );
     res.status(200).json(rows);
   } catch (err) {
     console.error('Error fetching worker profiles:', err);
@@ -492,7 +516,9 @@ router.delete('/worker-profiles/:userId/:workerId', async (req, res) => {
     if (rowCount === 0) return res.status(404).json({ message: 'Worker profile not found' });
 
     // Ensure there is a primary profile for user; if none, pick the earliest one
-    const { rows: primRows } = await db.query('SELECT id FROM workers WHERE user_id = $1 AND is_primary = true LIMIT 1;', [userId]);
+    const { rows: primRows } = await db.query('SELECT id FROM workers WHERE user_id = $1 AND is_primary = true LIMIT 1;', [
+      userId,
+    ]);
     if (primRows.length === 0) {
       const { rows } = await db.query('SELECT id FROM workers WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1;', [userId]);
       if (rows.length > 0) {
@@ -512,14 +538,15 @@ router.delete('/worker-profiles/:userId/:workerId', async (req, res) => {
  */
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = normalizeEmail(email);
 
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     res.status(400).json({ message: 'Invalid credentials' });
     return;
   }
 
   user_queries
-    .checkLoginCredentials(email, password)
+    .checkLoginCredentials(normalizedEmail, password)
     .then((foundUser) => {
       if (!foundUser) {
         res.status(400).json({ message: 'Invalid credentials' });
@@ -561,9 +588,10 @@ router.get('/me', async (req, res) => {
  */
 router.post('/initiate-password-reset', async (req, res) => {
   const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email);
 
   try {
-    const user = await user_queries.getUserByEmail(email);
+    const user = await user_queries.getUserByEmail(normalizedEmail);
 
     if (!user) {
       res.status(404).json({ success: false, message: 'User not found' });
@@ -578,7 +606,7 @@ router.post('/initiate-password-reset', async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     await user_queries.saveUserResetToken(user.id, resetToken);
 
-    const sent = await sendPasswordResetEmail(email, resetToken);
+    const sent = await sendPasswordResetEmail(normalizedEmail, resetToken);
 
     if (!sent) {
       res.status(500).json({ success: false, message: 'Failed to send reset email' });
