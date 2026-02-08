@@ -7,7 +7,7 @@ ALTER TABLE workers
 ADD CONSTRAINT IF NOT EXISTS workers_user_profile_unique
 UNIQUE (user_id, profile_name);
 
--- Ensure only ONE primary profile per user
+-- Ensure only ONE primary profile per User
 CREATE UNIQUE INDEX IF NOT EXISTS workers_one_primary_per_user
 ON workers (user_id)
 WHERE is_primary = true;
