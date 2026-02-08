@@ -12,7 +12,7 @@ const LandingPage = () => {
       <img src={WelcomeFlexygig} id="welcome-flexygig-image"/>
       <div id="homebuttons-container">
         <Link id="findgig-button" className="custom-link" to="/register?accountType=Worker">
-          Find a Gig
+          Find a Gigi hadid
         </Link>
         <Link id="postgig-button" className="custom-link" to="/register?accountType=Employer">
           Post a Gig
