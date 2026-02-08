@@ -2,7 +2,7 @@ const db = require('../connection.js');
 const bcrypt = require('bcryptjs');
 
 /**
- * USERS
+ * Users
  */
 const addUser = (email, password, isBusiness, phoneNumber, userImage, locationId) => {
   const query = `
